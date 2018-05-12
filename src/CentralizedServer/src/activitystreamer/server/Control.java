@@ -26,12 +26,11 @@ public class Control extends Thread {
 	private static ArrayList<Connection> connections;
 	private static boolean term = false;
 	private static Listener listener;
-	// added attributes
-	private static Hashtable<String, Integer> serverLoad;
-	private static Hashtable<String, JSONObject> serverRedirect;
-	private static Hashtable<String, Connection> pendingRegistration;
-	private static Hashtable<String, JSONObject> lockRequestResponses;
-	private static JSONObject lockRequestResponseCount;
+	// modified / added attributes
+//	private static ArrayList<Connection> serverConnections;
+//	private static ArrayList<Connection> nonLoginClientConnections;
+	private static Hashtable<String, Integer> serverClientLoad;
+	private static Hashtable<String, JSONObject> serverAddresses;
 
 	protected static Control control = null;
 
@@ -44,24 +43,30 @@ public class Control extends Thread {
 
 	public Control() {
 
-		// Initialisation:
-
-		// connections array
+		// ***** STARTUP INITIALISATION (START) *****
+		
+		// Connections:
+		
+		// connection array
 		connections = new ArrayList<Connection>();
+//		// server connections
+//		serverConnections = new ArrayList<Connection>();
+//		// non-login client connections, logged in clients will be distributed to regular server nodes based on load balancing
+//		nonLoginClientConnections = new ArrayList<Connection>();
+		
+		// Centralised Server Memory:
+		
 		// server's client load for load balancing
-		serverLoad = new Hashtable<String, Integer>();
-		// server's hostname and port number for redirection
-		serverRedirect = new Hashtable<String, JSONObject>();
-		// hashtable to store pending user registrations while awaiting server replies
-		pendingRegistration = new Hashtable<String, Connection>();
-		// lock request responses - JSONObject to store number of responses and boolean
-		// (to allow or deny)
-		lockRequestResponses = new Hashtable<String, JSONObject>();
-		lockRequestResponseCount = new JSONObject();
-		lockRequestResponseCount.put("count", 0);
-		lockRequestResponseCount.put("allow", true);
-		// create new password local storage if not created
+		serverClientLoad = new Hashtable<String, Integer>();
+		// server's address (hostname and port number) for load balancing
+		serverAddresses = new Hashtable<String, JSONObject>();
+		
+		// Local Storage:
+		
+		// user store - username and secret
 		createUserLocalStorage();
+		
+		// ***** STARTUP INITIALISATION (END) *****
 
 		// start a listener
 		try {
@@ -76,16 +81,11 @@ public class Control extends Thread {
 	}
 
 	public void initiateConnection() {
-
-		// make a connection to another server if remote hostname is supplied
+		// [for backup server]: make a connection to main server -> if remote hostname was supplied
 		if (Settings.getRemoteHostname() != null) {
 			try {
-
-				// initiate connection with remote host server (outgoing)
-				// synchronise thread to organise server authentication - due to the lack of
-				// server id in JSON object
-				// upon successful connection (i.e. socket accepted), begin server
-				// authentication by calling serverAuthentication() method
+				// initiate connection with centralised host server (outgoing)
+				// authenticate with centralised host server with secret
 				sendServerAuthentication(
 						outgoingConnection(new Socket(Settings.getRemoteHostname(), Settings.getRemotePort())));
 
@@ -113,7 +113,9 @@ public class Control extends Thread {
 				// retrieve command to process
 				String command = (String) message.get("command");
 				switch (command) {
-				// AUTHENTICATE starts
+				
+				// ***** AUTHENTICATE (START) *****
+				
 				case "AUTHENTICATE":
 					if (message.containsKey("secret")) {
 						// check secret between 2 connecting servers
@@ -130,11 +132,12 @@ public class Control extends Thread {
 							sendAuthenticationFail(con, "the supplied secret is incorrect: " + authenticateSecret);
 							return true;
 						}
-						// if the secret is correct and the server has not been authenticated
-						// previously,
-						// indicate that the server is now authenticated and keep the connection open
+						// if the secret is correct and the server has not been authenticated previously,
+						// indicate that the server is now authenticated and reply AUTHENTICATE_SUCCESS
 						else {
 							log.info("authenticate successfully with " + con.getSocket().getRemoteSocketAddress());
+							// [ADD] AUTHENTICATE_SUCCESS method below
+							// sendAuthenticateSuccess
 							con.setServerAuthenticated();
 						}
 					} else {
@@ -144,26 +147,9 @@ public class Control extends Thread {
 					}
 					break;
 
-				// AUTHENTICATE ends
+				// ***** AUTHENTICATE (END) *****
 
-				// INVALID_MESSAGE starts
-
-				case "INVALID_MESSAGE":
-
-					if (message.containsKey("info")) {
-						// retrieve invalid message info, print it, and close connection
-						String invalidMessageInfo = (String) message.get("info");
-						log.info(invalidMessageInfo);
-						return true;
-					} else {
-						// send invalid message if info is not found and close connection
-						sendInvalidMessage(con, "the received message did not contain a info");
-						return true;
-					}
-
-					// INVALID_MESSAGE ends
-
-					// AUTHENTICATION_FAIL starts
+				// ***** AUTHENTICATION_FAIL (START) *****
 
 				case "AUTHENTICATION_FAIL":
 
@@ -178,16 +164,55 @@ public class Control extends Thread {
 						return true;
 					}
 
-					// AUTHENTICATION_FAIL ends
+				// ***** AUTHENTICATION_FAIL (END) ******
+					
+				// ***** AUTHENTICATION_SUCCESS (START) *****
+					
+				case "AUTHENTICATION_SUCCESS":
+					// do something - decide on the protocol message
+					// send invalid message if message was corrupted
+					// if message was valid, start synchronising the 2 centralised server
+					if (message.containsKey("info")) {
+						// retrieve authentication fail info, print it, and close connection
+						String authenticationFailInfo = (String) message.get("info");
+						log.info(authenticationFailInfo);
+						return true;
+					} else {
+						// send invalid message if info is not found and close connection
+						sendInvalidMessage(con, "the received message did not contain a info");
+						return true;
+					}
 
-					// LOGIN starts
+				// ***** AUTHENTICATION_SUCCESS (END) *****
+					
+				// ***** SYNCHRONISE_SERVER (START) *****
+					
+				case "SYNCHRONISE_SERVER":
+					// do something - decide on the protocol message
+					// send invalid message if message was corrupted
+					// if message was valid, start synchronising the 2 centralised server
+					if (message.containsKey("info")) {
+						// retrieve authentication fail info, print it, and close connection
+						String authenticationFailInfo = (String) message.get("info");
+						log.info(authenticationFailInfo);
+						return true;
+					} else {
+						// send invalid message if info is not found and close connection
+						sendInvalidMessage(con, "the received message did not contain a info");
+						return true;
+					}
+					
+				// ***** SYNCHRONISE_SERVER (END) *****
+
+				// ***** LOGIN (START) *****
 
 				case "LOGIN":
 					System.out.println("someone wants to login");
 					break;
-				// LOGIN ends
+					
+				// ***** LOGIN (END) *****
 
-				// LOGOUT starts
+				// ***** LOGOUT (START) *****
 
 				case "LOGOUT":
 					// print client logged out message and close connection
@@ -195,62 +220,40 @@ public class Control extends Thread {
 					log.info("client " + con.getSocket().getRemoteSocketAddress() + " has logged out");
 					return true;
 
-				// LOGOUT ends
+				// ***** LOGOUT (END) *****
 
-				// ACTIVITY_MESSAGE starts
-
-				case "ACTIVITY_MESSAGE":
-					// check if client has logged in
-					System.out.println("ACTIVITY_MESSAGE recieved.");
-					break;
-				// ACTIVITY_MESSAGE ends
-
-				// SERVER_ANNOUNCE starts
-
-				case "SERVER_ANNOUNCE":
-					// Do we need this?
-					System.out.println("SERVER_ANNOUNCE recieved.");
-					break;
-				// SERVER_ANNOUNCE ends
-
-				// ACTIVITY_BROADCAST starts
+				// ***** ACTIVITY_BROADCAST (START) ******
 
 				case "ACTIVITY_BROADCAST":
 					System.out.println("ACTIVITY_BROADCAST recieved.");
 					break;
 
-				// ACTIVITY_BROADCAST ends
+				// ***** ACTIVITY_BROADCAST (END) ******
 
-				// REGISTER starts
+				// ***** REGISTER (START) *****
 
 				case "REGISTER":
 					System.out.println("Someone wants to register");
 					break;
-				// REGISTER ends
+					
+				// ***** REGISTER (END) *****
+					
+				// ***** INVALID_MESSAGE (START) *****
 
-				// LOCK_REQUEST starts
+				case "INVALID_MESSAGE":
 
-				case "LOCK_REQUEST":
-					System.out.println("LOCK_REQUEST recieved");
-					break;
-				// LOCK_REQUEST ends
+					if (message.containsKey("info")) {
+						// retrieve invalid message info, print it, and close connection
+						String invalidMessageInfo = (String) message.get("info");
+						log.info(invalidMessageInfo);
+						return true;
+					} else {
+						// send invalid message if info is not found and close connection
+						sendInvalidMessage(con, "the received message did not contain a info");
+						return true;
+					}
 
-				// LOCK_DENIED starts
-
-				case "LOCK_DENIED":
-					// It seems we dont need this
-					System.out.println("LOCK_DENIED");
-					break;
-
-				// LOCK_DENIED ends
-
-				// LOCK_ALLOWED starts
-
-				case "LOCK_ALLOWED":
-					// It seems we dont need this
-					System.out.println("LOCK_ALLOWED");
-					break;
-				// LOCK_ALLOWED ends
+				// ***** INVALID_MESSAGE (END) *****
 
 				default:
 					// if command is not valid send invalid message and close connection
@@ -470,12 +473,12 @@ public class Control extends Thread {
 	// Redirect
 
 	private boolean executeLoadBalance(Connection c) {
-		for (String serverId : serverLoad.keySet()) {
+		for (String serverId : serverClientLoad.keySet()) {
 			// redirect if server finds any server with at least 2 clients lesser than its
 			// own
-			if (getClientLoad() - serverLoad.get(serverId) >= 2) {
+			if (getClientLoad() - serverClientLoad.get(serverId) >= 2) {
 				// send destination server address
-				redirectClient(c, serverRedirect.get(serverId));
+				redirectClient(c, serverAddresses.get(serverId));
 				return true;
 			}
 		}
