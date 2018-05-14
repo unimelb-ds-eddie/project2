@@ -208,6 +208,35 @@ public class Control extends Thread {
 
 				case "LOGIN":
 					System.out.println("someone wants to login");
+					
+					// extract client's details from JSON
+					String username_client = (String) message.get("username");
+					String secret_client = (String) message.get("secret");
+					
+					// authenticate the client's details
+					if (authenticateClient(username_client, secret_client))
+					{
+						// send login success
+						System.out.println("Login success!");
+						sendLoginSuccess(con, username_client);
+						
+						// redirect if the client is connected to central server to login
+						// by calling executeLoadBalance
+						// do something below to reflect this
+						executeLoadBalance(con);
+						
+					}
+					else
+					{
+						System.out.println("Login failed!");
+						// send login failed
+						sendLoginFailed(con);
+						
+						// close connection
+						System.out.println("Closing connection...");
+						return true;
+						
+					}
 					break;
 					
 				// ***** LOGIN (END) *****
@@ -234,6 +263,32 @@ public class Control extends Thread {
 
 				case "REGISTER":
 					System.out.println("Someone wants to register");
+					
+					// retrieve client's details from JSON object 'message'
+					String username = (String) message.get("username");
+					String secret = (String) message.get("secret");
+					
+					// check if username exists. If yes, invoke register fail
+					if (!checkUsernameExist(username))
+					{
+						// this is the case where it doesn't exist
+						// write to DB and send register success
+						System.out.println("Username doesn't exist, registering now...");
+						storeUsernameSecret(username, secret);
+						sendRegisterSuccess(con, username);
+						
+					}
+					else
+					{
+						// this is the case where username already exists
+						// send register fail
+						System.out.println("Username exists, failing to register!");
+						sendRegisterFailed(con, username);
+						
+						// close connection
+						return true;
+					}
+					
 					break;
 					
 				// ***** REGISTER (END) *****
@@ -322,6 +377,10 @@ public class Control extends Thread {
 			// do something with 5 second intervals in between
 			// perform server announce every 5 seconds
 			System.out.println("There are " + connections.size() + " servers connected.");
+			
+			// kick clients off
+			// commented out for testing purposes
+			/*
 			for (Iterator<Connection> iterator = connections.iterator(); iterator.hasNext();) {
 				Connection con = iterator.next();
 				if (!con.isServerAuthenticated()) {
@@ -329,6 +388,8 @@ public class Control extends Thread {
 							"{\"command\" : \"ACTIVITY_BROADCAST\",\"expel\" : \"Sorry, clients cannot directly connect centralized server\"}");
 				}
 			}
+			*/
+			
 			try {
 				Thread.sleep(Settings.getActivityInterval());
 			} catch (InterruptedException e) {
@@ -473,6 +534,7 @@ public class Control extends Thread {
 	// Redirect
 
 	private boolean executeLoadBalance(Connection c) {
+		System.out.println("executeLoadBalance in effect now...");
 		for (String serverId : serverClientLoad.keySet()) {
 			// redirect if server finds any server with at least 2 clients lesser than its
 			// own
@@ -487,6 +549,7 @@ public class Control extends Thread {
 
 	@SuppressWarnings("unchecked")
 	private void redirectClient(Connection c, JSONObject address) {
+		System.out.println("Redirect in effect now...");
 		// Marshaling
 		JSONObject redirectMessage = new JSONObject();
 		redirectMessage.put("command", "REDIRECT");
