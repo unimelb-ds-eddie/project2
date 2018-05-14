@@ -27,5 +27,6 @@
 7. DE_LOAD - @Edward, I don't quite understand why this is required as a protocol, let's discuss on Thursday
 
 ### TODO
-- Server authentication with centralised server (Eddie)
+- Server authentication with centralised server
   - add server id, addresses to centralised server memory
+- real-time synchronisation of requests to backup server (e.g. when new client login successfully, have to update backup server)
