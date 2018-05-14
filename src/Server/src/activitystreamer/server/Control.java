@@ -9,6 +9,8 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import com.google.gson.JsonObject;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -22,7 +24,7 @@ import activitystreamer.util.Settings;
 
 public class Control extends Thread {
 	private static final Logger log = LogManager.getLogger();
-	private static ArrayList<Connection> connections;
+	public static ArrayList<Connection> connections;
 	private static boolean term = false;
 	private static Listener listener;
 	// added attributes
@@ -31,6 +33,7 @@ public class Control extends Thread {
 	private static Hashtable<String, Connection> pendingRegistration;
 	private static Hashtable<String, JSONObject> lockRequestResponses;
 	private static JSONObject lockRequestResponseCount;
+	
 
 	protected static Control control = null;
 
@@ -139,6 +142,8 @@ public class Control extends Thread {
 						else {
 							log.info("authenticate successfully with " + con.getSocket().getRemoteSocketAddress());
 							con.setServerAuthenticated();
+							
+							
 						}
 					} else {
 						// send invalid message if secret is not found and close connection
@@ -197,6 +202,12 @@ public class Control extends Thread {
 				case "LOGOUT":
 					// print client logged out message and close connection
 					log.info("client " + con.getSocket().getRemoteSocketAddress() + " has logged out");
+					// inform centralized server to decrease 1 load
+					JSONObject deload = new JSONObject();
+					deload.put("command", "DE_LOAD");
+					deload.put("id",Settings.getServerId());
+					System.out.println(Settings.getServerId());
+					forwardServerMessage(con, deload);
 					return true;
 
 				// LOGOUT ends
@@ -328,6 +339,7 @@ public class Control extends Thread {
 			// do something with 5 second intervals in between
 			// perform server announce every 5 seconds
 			// sendServerAnnounce(connections);
+			//sendServerAnnounce(connections);
 			try {
 				Thread.sleep(Settings.getActivityInterval());
 			} catch (InterruptedException e) {
@@ -338,7 +350,6 @@ public class Control extends Thread {
 				// log.debug("doing activity");
 				term = doActivity();
 			}
-
 		}
 		log.info("closing " + connections.size() + " connections");
 		// clean up
@@ -389,6 +400,11 @@ public class Control extends Thread {
 		JSONObject authenticate = new JSONObject();
 		authenticate.put("command", "AUTHENTICATE");
 		authenticate.put("secret", Settings.getSecret());
+		
+		//add unique id to track server load
+		authenticate.put("id", Settings.getServerId());
+		authenticate.put("hostname", Settings.getLocalHostname());
+		authenticate.put("port", Settings.getLocalPort());
 		// write message
 		if (c.writeMsg(authenticate.toJSONString())) {
 			log.debug("[Port-" + Settings.getLocalPort() + "]: AUTHENTICATE sent to Port-" + Settings.getRemotePort());
@@ -747,4 +763,5 @@ public class Control extends Thread {
 			c.writeMsg(activityBroadcastMessage.toJSONString());
 		}
 	}
+	
 }

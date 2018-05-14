@@ -5,6 +5,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Map;
 
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -23,7 +24,7 @@ import activitystreamer.util.Settings;
 
 public class Control extends Thread {
 	private static final Logger log = LogManager.getLogger();
-	private static ArrayList<Connection> connections;
+	public static ArrayList<Connection> connections;
 	private static boolean term = false;
 	private static Listener listener;
 	// modified / added attributes
@@ -50,20 +51,21 @@ public class Control extends Thread {
 	public Control() {
 
 		// ***** STARTUP INITIALISATION (START) *****
-		
+
 		// Connections:
-		
+
 		// connection array
 		connections = new ArrayList<Connection>();
 		// backup server connections for redundancies to the centralised server
 		backupServerConnections = new ArrayList<Connection>();
-		
+
 		// Centralised Server Memory:
-		
+
 		// server's client load for load balancing
 		serverClientLoad = new Hashtable<String, Integer>();
 		// server's address (hostname and port number) for load balancing
 		serverAddresses = new Hashtable<String, JSONObject>();
+
 		// [DELETE] for testing
 		testserverClientLoad = new Hashtable<String, Integer>();
 		testserverClientLoad.put("1", 5);
@@ -74,12 +76,12 @@ public class Control extends Thread {
 		address.put("hostname", "localhost");
 		address.put("port", 3790);
 		testserverAddresses.put("1", address);
-		
+
 		// Local Storage:
-		
+
 		// user store - username and secret
 		createUserLocalStorage();
-		
+
 		// ***** STARTUP INITIALISATION (END) *****
 
 		// start a listener
@@ -95,6 +97,7 @@ public class Control extends Thread {
 	}
 
 	public void initiateConnection() {
+
 		// [for backup centralised server]: make a connection to main server -> if remote hostname was supplied
 		if (Settings.getRemoteHostname() != null) {
 			try {
@@ -206,11 +209,14 @@ public class Control extends Thread {
 				// ***** BACKUP_AUTHENTICATION_SUCCESS (END) *****
 				
 				// ***** AUTHENTICATE (START) *****
-				
+
 				case "AUTHENTICATE":
 					if (message.containsKey("secret")) {
 						// check secret between 2 connecting servers
 						String authenticateSecret = (String) message.get("secret");
+						// add id to balance load
+						String id = (String) message.get("id");
+
 						// if the server has already been authenticated, send invalid message and close
 						// connection
 						if (con.isServerAuthenticated() == true) {
@@ -223,13 +229,18 @@ public class Control extends Thread {
 							sendAuthenticationFail(con, "the supplied secret is incorrect: " + authenticateSecret);
 							return true;
 						}
-						// if the secret is correct and the server has not been authenticated previously,
+						// if the secret is correct and the server has not been authenticated
+						// previously,
 						// indicate that the server is now authenticated and reply AUTHENTICATE_SUCCESS
 						else {
 							log.info("authenticate successfully with " + con.getSocket().getRemoteSocketAddress());
 							// [ADD] AUTHENTICATE_SUCCESS method below
 							// sendAuthenticateSuccess
 							con.setServerAuthenticated();
+
+							// add the server load
+							serverClientLoad.put(id, 0);
+							serverAddresses.put(id, message);
 						}
 					} else {
 						// send invalid message if secret is not found and close connection
@@ -324,10 +335,42 @@ public class Control extends Thread {
 
 				case "LOGIN":
 					System.out.println("someone wants to login");
-					break;
-					
-				// ***** LOGIN (END) *****
 
+					// extract client's details from JSON
+					String username_client = (String) message.get("username");
+					String secret_client = (String) message.get("secret");
+
+					// authenticate the client's details
+					if (authenticateClient(username_client, secret_client)) {
+						// send login success
+						System.out.println("Login success!");
+						sendLoginSuccess(con, username_client);
+
+						// redirect if the client is connected to central server to login
+						// by calling executeLoadBalance
+						// do something below to reflect this
+						executeLoadBalance(con);
+
+					} else {
+						System.out.println("Login failed!");
+						// send login failed
+						sendLoginFailed(con);
+						// close connection
+						System.out.println("Closing connection...");
+						return true;
+					}
+					break;
+
+				// ***** LOGIN (END) *****
+					
+				// DELOAD
+				case "DE_LOAD":
+					// decrease one load when a client logouts
+					String decease_id = (String) message.get("id");
+					System.out.println(decease_id + " logouts");
+					serverClientLoad.put(decease_id, serverClientLoad.get(decease_id)-1);
+				break;
+									
 				// ***** LOGOUT (START) *****
 
 				case "LOGOUT":
@@ -350,10 +393,33 @@ public class Control extends Thread {
 
 				case "REGISTER":
 					System.out.println("Someone wants to register");
+
+					// retrieve client's details from JSON object 'message'
+					String username = (String) message.get("username");
+					String secret = (String) message.get("secret");
+
+					// check if username exists. If yes, invoke register fail
+					if (!checkUsernameExist(username)) {
+						// this is the case where it doesn't exist
+						// write to DB and send register success
+						System.out.println("Username doesn't exist, registering now...");
+						storeUsernameSecret(username, secret);
+						sendRegisterSuccess(con, username);
+
+					} else {
+						// this is the case where username already exists
+						// send register fail
+						System.out.println("Username exists, failing to register!");
+						sendRegisterFailed(con, username);
+
+						// close connection
+						return true;
+					}
+
 					break;
-					
+
 				// ***** REGISTER (END) *****
-					
+
 				// ***** INVALID_MESSAGE (START) *****
 
 				case "INVALID_MESSAGE":
@@ -369,7 +435,7 @@ public class Control extends Thread {
 						return true;
 					}
 
-				// ***** INVALID_MESSAGE (END) *****
+					// ***** INVALID_MESSAGE (END) *****
 
 				default:
 					// if command is not valid send invalid message and close connection
@@ -443,15 +509,25 @@ public class Control extends Thread {
 
 		while (!term) {
 			// do something with 5 second intervals in between
-//			System.out.println("There are " + connections.size() + " servers connected.");
-//			System.out.println("There are " + backupServerConnections.size() + " backup servers connected.");
-			for (Iterator<Connection> iterator = connections.iterator(); iterator.hasNext();) {
-				Connection con = iterator.next();
-				if (!con.isServerAuthenticated()) {
-					con.writeMsg(
-							"{\"command\" : \"ACTIVITY_BROADCAST\",\"expel\" : \"Sorry, clients cannot directly connect centralized server\"}");
-				}
+			System.out.println("There are " + connections.size() + " servers connected.");
+			System.out.println("There are " + backupServerConnections.size() + " backup servers connected.");
+			System.out.println("ServerLoad status:");
+
+			for (Map.Entry<String, Integer> entry : serverClientLoad.entrySet()) {
+				System.out.println("Server:" + entry.getKey());
+				System.out.println("Load:" + entry.getValue());
 			}
+
+			// kick clients off
+			// commented out for testing purposes
+			/*
+			 * for (Iterator<Connection> iterator = connections.iterator();
+			 * iterator.hasNext();) { Connection con = iterator.next(); if
+			 * (!con.isServerAuthenticated()) { con.writeMsg(
+			 * "{\"command\" : \"ACTIVITY_BROADCAST\",\"expel\" : \"Sorry, clients cannot directly connect centralized server\"}"
+			 * ); } }
+			 */
+
 			try {
 				Thread.sleep(Settings.getActivityInterval());
 			} catch (InterruptedException e) {
@@ -701,21 +777,34 @@ public class Control extends Thread {
 
 	// Redirect
 
-	private boolean executeLoadBalance(Connection c) {
+	private void executeLoadBalance(Connection c) {
+		System.out.println("executeLoadBalance in effect now...");
+		String leastId = "";
+		int leastLoad = 99999999;
 		for (String serverId : serverClientLoad.keySet()) {
-			// redirect if server finds any server with at least 2 clients lesser than its
-			// own
-			if (getClientLoad() - serverClientLoad.get(serverId) >= 2) {
-				// send destination server address
-				redirectClient(c, serverAddresses.get(serverId));
-				return true;
+			if (serverClientLoad.get(serverId) <= leastLoad) {
+				leastId = serverId;
+				leastLoad = serverClientLoad.get(serverId);
 			}
 		}
-		return false;
+		redirectClient(c, serverAddresses.get(leastId));
+		serverClientLoad.put(leastId, leastLoad + 1);
+
+		// for (String serverId : serverClientLoad.keySet()) {
+		// // redirect to least-loaded server
+		// // own
+		// if (getClientLoad() - serverClientLoad.get(serverId) >= 2) {
+		// // send destination server address
+		// redirectClient(c, serverAddresses.get(serverId));
+		// return true;
+		// }
+		// }
+		// return false;
 	}
 
 	@SuppressWarnings("unchecked")
 	private void redirectClient(Connection c, JSONObject address) {
+		System.out.println("Redirect in effect now...");
 		// Marshaling
 		JSONObject redirectMessage = new JSONObject();
 		redirectMessage.put("command", "REDIRECT");

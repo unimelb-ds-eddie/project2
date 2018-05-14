@@ -124,4 +124,10 @@ public class Connection extends Thread {
 		this.clientSecret = clientSecret;
 	}
 
+	public int getLoad() {
+		return Control.connections.size();
+	}
+
+	
+	
 }
