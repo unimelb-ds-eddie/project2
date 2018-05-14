@@ -30,6 +30,8 @@ public class Connection extends Thread {
 	private String clientUserName; 
 	private String clientSecret;
 	
+
+	
 	Connection(Socket socket) throws IOException{
 		in = new DataInputStream(socket.getInputStream());
 	    out = new DataOutputStream(socket.getOutputStream());
@@ -123,5 +125,9 @@ public class Connection extends Thread {
 	public void setClientSecret(String clientSecret) {
 		this.clientSecret = clientSecret;
 	}
+
+
+
+
 	
 }
