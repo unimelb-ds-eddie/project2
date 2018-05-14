@@ -29,6 +29,7 @@ public class Connection extends Thread {
 	private boolean loggedInClient = false; // to indicate that client has logged in; clients logged in are included in load count
 	private String clientUserName; 
 	private String clientSecret;
+	private boolean backupCentralisedServer = false;
 	
 	Connection(Socket socket) throws IOException{
 		in = new DataInputStream(socket.getInputStream());
@@ -73,11 +74,21 @@ public class Connection extends Thread {
 				term=Control.getInstance().process(this,data);
 			}
 			log.debug("connection closed to "+Settings.socketAddress(socket));
-			Control.getInstance().connectionClosed(this);
+			// check if it's a backup centralised server; remove from the right connection array
+			if(backupCentralisedServer) {
+				Control.getInstance().backupServerConnectionClosed(this);
+			} else {
+				Control.getInstance().connectionClosed(this);
+			}
 			in.close();
 		} catch (IOException e) {
 			log.error("connection "+Settings.socketAddress(socket)+" closed with exception: "+e);
-			Control.getInstance().connectionClosed(this);
+			// check if it's a backup centralised server; remove from the right connection array
+			if(backupCentralisedServer) {
+				Control.getInstance().backupServerConnectionClosed(this);
+			} else {
+				Control.getInstance().connectionClosed(this);
+			}
 		}
 		open=false;
 	}
@@ -122,6 +133,14 @@ public class Connection extends Thread {
 
 	public void setClientSecret(String clientSecret) {
 		this.clientSecret = clientSecret;
+	}
+	
+	public boolean isBackupCentralisedServer() {
+		return backupCentralisedServer;
+	}
+
+	public void setBackupCentralisedServer() {
+		this.backupCentralisedServer = true;
 	}
 	
 }
