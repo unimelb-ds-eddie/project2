@@ -23,12 +23,11 @@ public class Connection extends Thread {
 	private Socket socket;
 	private boolean term = false;
 	// added variable(s)
-	private boolean serverAuthenticated = false; // required for serverAnnounce to check if connecting servers have been
-													// authenticated before reading server announce message
-	private boolean loggedInClient = false; // to indicate that client has logged in; clients logged in are included in
-											// load count
+	private boolean serverAuthenticated = false; 
+	private boolean loggedInClient = false; 
 	private String clientUserName;
 	private String clientSecret;
+	private boolean centralisedServer = false;
 
 	Connection(Socket socket) throws IOException {
 		in = new DataInputStream(socket.getInputStream());
@@ -73,11 +72,21 @@ public class Connection extends Thread {
 				term = Control.getInstance().process(this, data);
 			}
 			log.debug("connection closed to " + Settings.socketAddress(socket));
-			Control.getInstance().connectionClosed(this);
+			// closing the right connection in Control
+			if(this.isCentralisedServer()) {
+				Control.getInstance().centralisedServerConnectionClosed(this);
+			} else {
+				Control.getInstance().connectionClosed(this);
+			}
 			in.close();
 		} catch (IOException e) {
 			log.error("connection " + Settings.socketAddress(socket) + " closed with exception: " + e);
-			Control.getInstance().connectionClosed(this);
+			// closing the right connection in Control
+			if(this.isCentralisedServer()) {
+				Control.getInstance().centralisedServerConnectionClosed(this);
+			} else {
+				Control.getInstance().connectionClosed(this);
+			}
 		}
 		open = false;
 	}
@@ -127,7 +136,12 @@ public class Connection extends Thread {
 	public int getLoad() {
 		return Control.connections.size();
 	}
+	
+	public boolean isCentralisedServer() {
+		return centralisedServer;
+	}
 
-	
-	
+	public void setCentralisedServer() {
+		this.centralisedServer = true;
+	}
 }

@@ -32,7 +32,7 @@ public class Control extends Thread {
 	private static Hashtable<String, Integer> serverClientLoad;
 	private static Hashtable<String, JSONObject> serverAddresses;
 	// [DELETE] for testing
-	private static Hashtable<String, Integer> testserverClientLoad;
+//	private static Hashtable<String, Integer> testserverClientLoad;
 	private static Hashtable<String, JSONObject> testserverAddresses;
 	
 	// [NOTE] - things to take note
@@ -67,18 +67,19 @@ public class Control extends Thread {
 		serverAddresses = new Hashtable<String, JSONObject>();
 
 		// [DELETE] for testing
-		testserverClientLoad = new Hashtable<String, Integer>();
-		testserverClientLoad.put("1", 5);
-		testserverClientLoad.put("2", 10);
-		testserverClientLoad.put("3", 2);
+//		testserverClientLoad = new Hashtable<String, Integer>();
+//		testserverClientLoad.put("1", 5);
+//		testserverClientLoad.put("2", 10);
+//		testserverClientLoad.put("3", 2);
 		testserverAddresses = new Hashtable<String, JSONObject>();
+
 		JSONObject address = new JSONObject();
 		address.put("hostname", "localhost");
 		address.put("port", 3790);
 		testserverAddresses.put("1", address);
-
+				
 		// Local Storage:
-
+				
 		// user store - username and secret
 		createUserLocalStorage();
 
@@ -160,7 +161,7 @@ public class Control extends Thread {
 							con.setServerAuthenticated();
 							con.setBackupCentralisedServer();
 							updateBackupConnection(con);
-							sendBackupAuthenticationSuccess(con, "successfully authenticated with main centralised server");
+							sendBackupAuthenticationSuccess(con, "authenticated successfully with main centralised server");
 							// initiate server synchronisation
 							synchroniseCentralisedServers(con);
 						}
@@ -211,41 +212,66 @@ public class Control extends Thread {
 				// ***** AUTHENTICATE (START) *****
 
 				case "AUTHENTICATE":
-					if (message.containsKey("secret")) {
-						// check secret between 2 connecting servers
-						String authenticateSecret = (String) message.get("secret");
-						// add id to balance load
-						String id = (String) message.get("id");
-
-						// if the server has already been authenticated, send invalid message and close
-						// connection
-						if (con.isServerAuthenticated() == true) {
-							sendInvalidMessage(con, "server has already been authenticated");
-							return true;
-						}
-						// if secret is incorrect, send AUTHENTICATION_FAIL and close connection
-						else if (!Settings.getSecret().equals(authenticateSecret)) {
-							log.info("authenticate failed with " + con.getSocket().getRemoteSocketAddress());
-							sendAuthenticationFail(con, "the supplied secret is incorrect: " + authenticateSecret);
-							return true;
-						}
-						// if the secret is correct and the server has not been authenticated
-						// previously,
-						// indicate that the server is now authenticated and reply AUTHENTICATE_SUCCESS
-						else {
-							log.info("authenticate successfully with " + con.getSocket().getRemoteSocketAddress());
-							// [ADD] AUTHENTICATE_SUCCESS method below
-							// sendAuthenticateSuccess
-							con.setServerAuthenticated();
-
-							// add the server load
-							serverClientLoad.put(id, 0);
-							serverAddresses.put(id, message);
-						}
-					} else {
-						// send invalid message if secret is not found and close connection
-						sendInvalidMessage(con, "the received message did not contain a secret");
+					
+					// if the server has already been authenticated, send invalid message and close
+					// connection
+					if (con.isServerAuthenticated() == true) {
+						sendInvalidMessage(con, "server has already been authenticated");
 						return true;
+					} else {
+						boolean hasSecret = message.containsKey("secret");
+						boolean hasID = message.containsKey("id");
+						boolean hasHostname = message.containsKey("hostname");
+						boolean hasPort = message.containsKey("port");
+						
+						if (hasSecret && hasID && hasHostname && hasPort) {
+							// check secret between 2 connecting servers
+							String authenticateSecret = (String) message.get("secret");
+							
+							// if secret is incorrect, send AUTHENTICATION_FAIL and close connection
+							if (!Settings.getSecret().equals(authenticateSecret)) {
+								log.info("authenticate failed with " + con.getSocket().getRemoteSocketAddress());
+								sendAuthenticationFail(con, "the supplied secret is incorrect: " + authenticateSecret);
+								return true;
+							}
+							// if the secret is correct and the server has not been authenticated
+							// previously,
+							// indicate that the server is now authenticated and reply AUTHENTICATE_SUCCESS
+							else {
+								log.info("authenticate successfully with " + con.getSocket().getRemoteSocketAddress());
+								// indicate connection as an authenticated server				
+								con.setServerAuthenticated();
+								
+								// retrieve server id, hostname, and port for load balance
+								String id = (String) message.get("id");
+								String hostname = (String) message.get("hostname");
+								int port = (int)(long) message.get("port");
+								
+								// initialise the server into memory
+								// initialise client load to 0
+								serverClientLoad.put(id, 0);
+								// update server address information
+								JSONObject address = new JSONObject();
+								address.put("hostname", hostname);
+								address.put("port", port);
+								serverAddresses.put(id, address);
+								
+								// send AUTHENTICATE_SUCCESS 
+								sendAuthenticateSuccess(con, "authenticated successfully with main centralised server");
+							}
+						} else {
+							// respond with invalid message if any of the attributes were missing and close the connection
+							if(!hasID) {
+								sendInvalidMessage(con, "the received message did not contain a server id");
+							} else if(!hasSecret) {
+								sendInvalidMessage(con, "the received message did not contain a secret");
+							} else if(!hasHostname) {
+								sendInvalidMessage(con, "the received message did not contain server's hostname");
+							} else if(!hasPort) {
+								sendInvalidMessage(con, "the received message did not contain server's port number");
+							}
+							return true;
+						}
 					}
 					break;
 
@@ -619,11 +645,11 @@ public class Control extends Thread {
 	
 	@SuppressWarnings("unchecked")
 	private boolean sendBackupAuthenticationSuccess(Connection c, String info) {
-		JSONObject failureMessage = new JSONObject();
-		failureMessage.put("command", "BACKUP_AUTHENTICATION_SUCCESS");
-		failureMessage.put("info", info);
+		JSONObject successMessage = new JSONObject();
+		successMessage.put("command", "BACKUP_AUTHENTICATION_SUCCESS");
+		successMessage.put("info", info);
 		// write message
-		if (c.writeMsg(failureMessage.toJSONString())) {
+		if (c.writeMsg(successMessage.toJSONString())) {
 			log.debug("[Port-" + Settings.getLocalPort() + "]: BACKUP_AUTHENTICATION_SUCCESS sent to "
 					+ c.getSocket().getRemoteSocketAddress());
 			return true;
@@ -651,6 +677,23 @@ public class Control extends Thread {
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
+	private boolean sendAuthenticateSuccess(Connection c, String info) {
+		JSONObject successMessage = new JSONObject();
+		successMessage.put("command", "AUTHENTICATION_SUCCESS");
+		successMessage.put("info", info);
+		// write message
+		if (c.writeMsg(successMessage.toJSONString())) {
+			log.debug("[Port-" + Settings.getLocalPort() + "]: AUTHENTICATION_SUCCESS sent to "
+					+ c.getSocket().getRemoteSocketAddress());
+			return true;
+		} else {
+			log.debug("[Port-" + Settings.getLocalPort() + "]: AUTHENTICATION_SUCCESS sending to "
+					+ c.getSocket().getRemoteSocketAddress() + " failed");
+			return false;
+		}
+	}
+	
 	// Synchronise centralised servers
 	
 	private void synchroniseCentralisedServers(Connection c) {
@@ -672,9 +715,7 @@ public class Control extends Thread {
 		// create JSON object for new protocol
 		JSONObject synchroniseServerLoadMessage = new JSONObject();
 		synchroniseServerLoadMessage.put("command", "SYNCHRONISE_SERVER_LOAD");
-		//synchroniseServerLoadMessage.put("activity", serverClientLoad);
-		// [DELETE] for testing
-		synchroniseServerLoadMessage.put("activity", testserverClientLoad);
+		synchroniseServerLoadMessage.put("activity", serverClientLoad);
 		// write message to backup server as JSON object
 		if (c.writeMsg(synchroniseServerLoadMessage.toJSONString())) {
 			log.debug("[Port-" + Settings.getLocalPort() + "]: SYNCHRONISE_SERVER_LOAD sent to "
