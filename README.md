@@ -24,7 +24,7 @@
 4. SYNCHRONISE_SERVER_LOAD
 5. SYNCHRONISE_SERVER_ADDRESSES
 6. SYNCHRONISE_USER_STORE
-7. DE_LOAD - @Edward, I don't quite understand why this is required as a protocol, let's discuss on Thursday
+7. DE_LOAD 
 
 ### TODO
 - Server authentication with centralised server
