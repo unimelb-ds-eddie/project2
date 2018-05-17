@@ -186,6 +186,7 @@ public class Control extends Thread {
 				case "LOGIN":
 					System.out.println(msg);
 					return false;
+					
 				default:
 					// if command is not valid send invalid message and close connection
 					sendInvalidMessage(con, "the received message did not contain a valid command");
