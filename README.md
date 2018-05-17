@@ -40,7 +40,7 @@
 - Synchronisation of new server update to backup (Eddie - Done)
 - Synchronisation of when serevr leaves and update to backup (Eddie - Done)
 - Synchronisation of registration update to backup (YJ)
-- Update centralised server when server/client leaves network and synchronise to backup (Edward)
+- Redirect client to main server when server fails (Edward)
 - Failure model of centralised server (Eddie) 
 - Fix user store (Eddie - Done)
 - check if server is authenticated before each synchronise commands (Eddie)
