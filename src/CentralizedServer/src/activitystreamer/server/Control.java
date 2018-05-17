@@ -340,6 +340,37 @@ public class Control extends Thread {
 					
 				// ***** SYNCHRONISE (END) *****
 					
+				// ***** SYNCHRONISE_NEW_SERVER (START) *****
+					
+				case "SYNCHRONISE_NEW_SERVER":
+					// new protocol to synchronise server memory on connected servers' addresses
+					// "command": "SYNCHRONISE_NEW_SERVER"
+					// "id": "<serverID>"
+					// "address": {"hostname": "hostname1", "port": "port1"} // Array of JSON Objects
+
+					// send invalid message if message was corrupted
+					// [ADD] check if message is invalid
+					if (message.containsKey("address")) {
+						// if message was valid, allow synchronisation of the 2 centralised servers
+						// update serverLoad and serverAddress
+						// retrieve server id, hostname, and port for load balance
+						String id = (String) message.get("id");
+						JSONObject address = (JSONObject) message.get("address");
+						
+						// initialise the server into memory
+						// initialise client load to 0
+						serverClientLoad.put(id, 0);
+						// update server address information
+						serverAddresses.put(id, address);
+					} else {
+						// send invalid message if info is not found and close connection
+						sendInvalidMessage(con, "the received message did not contain activity object");
+						return true;
+					}
+					break;
+					
+				// ***** SYNCHRONISE_NEW_SERVER (END) *****
+					
 				// ***** REMOVE_SERVER (START) *****
 					
 				case "REMOVE_SERVER":
