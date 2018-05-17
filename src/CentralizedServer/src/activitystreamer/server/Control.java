@@ -186,6 +186,7 @@ public class Control extends Thread {
 					if (message.containsKey("info")) {
 						// retrieve authentication success info, print it, and set connection as authenticated
 						con.setServerAuthenticated();
+						con.setBackupCentralisedServer();
 						String backupAuthenticationSuccessInfo = (String) message.get("info");
 						log.info(backupAuthenticationSuccessInfo);
 					} else {
@@ -234,6 +235,9 @@ public class Control extends Thread {
 								String id = (String) message.get("id");
 								String hostname = (String) message.get("hostname");
 								int port = (int)(long) message.get("port");
+								
+								// set server id
+								con.setServerID(id);
 								
 								// initialise the server into memory
 								// initialise client load to 0
@@ -357,7 +361,7 @@ public class Control extends Thread {
 					// "address": {"hostname": "hostname1", "port": "port1"} // Array of JSON Objects
 
 					// send invalid message if message was corrupted
-					
+					// [ADD] check if message is invalid
 					if (message.containsKey("address")) {
 						// if message was valid, allow synchronisation of the 2 centralised servers
 						// update serverLoad and serverAddress
@@ -378,6 +382,30 @@ public class Control extends Thread {
 					break;
 					
 				// ***** SYNCHRONISE_NEW_SERVER (END) *****
+					
+				// ***** REMOVE_SERVER (START) *****
+					
+				case "REMOVE_SERVER":
+					// new protocol to remove server in backup
+					// "command": "REMOVE_SERVER"
+					// "id": "<serverID>"
+
+					// send invalid message if message was corrupted
+					// [ADD] check if message is invalid
+					if (message.containsKey("id")) {
+						// remove from serverLoad and serverAddress
+						String id = (String) message.get("id");
+						serverClientLoad.remove(id);
+						serverAddresses.remove(id);
+
+					} else {
+						// send invalid message if info is not found and close connection
+						sendInvalidMessage(con, "the received message did not contain activity object");
+						return true;
+					}
+					break;
+					
+				// ***** REMOVE_SERVER (END) *****
 
 				// ***** LOGIN (START) *****
 
@@ -548,8 +576,15 @@ public class Control extends Thread {
 	 * The connection has been closed by the other party.
 	 */
 	public synchronized void connectionClosed(Connection con) {
-		if (!term)
+		if (!term) {
 			connections.remove(con);
+			// remove from serverClientLoad and serverAddresses
+			String serverId = con.getServerId();
+			serverClientLoad.remove(serverId);
+			serverAddresses.remove(serverId);
+			sendBackupRemoveServer(backupServerConnections, serverId);
+		}
+		
 	}
 	
 	public synchronized void backupServerConnectionClosed(Connection con) {
@@ -843,6 +878,25 @@ public class Control extends Thread {
 						+ backupCon.getSocket().getRemoteSocketAddress());
 			} else {
 				log.debug("[Port-" + Settings.getLocalPort() + "]: SYNCHRONISE_NEW_SERVER sending to "
+						+ backupCon.getSocket().getRemoteSocketAddress() + " failed");
+			}
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void sendBackupRemoveServer(ArrayList<Connection> c, String serverId) {
+		log.debug("informing backup to remove server");
+		// create JSON object for new protocol
+		JSONObject sendBackupRemoveServerMessage = new JSONObject();
+		sendBackupRemoveServerMessage.put("command", "REMOVE_SERVER");
+		sendBackupRemoveServerMessage.put("id", serverId);
+		for (Connection backupCon : c) {
+			// write message to backup server as JSON object
+			if (backupCon.writeMsg(sendBackupRemoveServerMessage.toJSONString())) {
+				log.debug("[Port-" + Settings.getLocalPort() + "]: REMOVE_SERVER sent to "
+						+ backupCon.getSocket().getRemoteSocketAddress());
+			} else {
+				log.debug("[Port-" + Settings.getLocalPort() + "]: REMOVE_SERVER sending to "
 						+ backupCon.getSocket().getRemoteSocketAddress() + " failed");
 			}
 		}
