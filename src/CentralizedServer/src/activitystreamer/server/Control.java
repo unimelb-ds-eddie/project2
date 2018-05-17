@@ -1004,17 +1004,8 @@ public class Control extends Thread {
 		}
 		redirectClient(c, serverAddresses.get(leastId));
 		serverClientLoad.put(leastId, leastLoad + 1);
-
-		// for (String serverId : serverClientLoad.keySet()) {
-		// // redirect to least-loaded server
-		// // own
-		// if (getClientLoad() - serverClientLoad.get(serverId) >= 2) {
-		// // send destination server address
-		// redirectClient(c, serverAddresses.get(serverId));
-		// return true;
-		// }
-		// }
-		// return false;
+		
+		// do something to update the serverClientLoad on backup server
 	}
 
 	@SuppressWarnings("unchecked")

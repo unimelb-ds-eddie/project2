@@ -1,1 +1,4 @@
 /bin/
+src/CentralizedServer/.classpath
+src/Client/.classpath
+src/Server/.classpath
