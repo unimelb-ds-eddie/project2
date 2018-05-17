@@ -65,18 +65,6 @@ public class Control extends Thread {
 		serverClientLoad = new Hashtable<String, Integer>();
 		// server's address (hostname and port number) for load balancing
 		serverAddresses = new Hashtable<String, JSONObject>();
-
-		// [DELETE] for testing
-//		testserverClientLoad = new Hashtable<String, Integer>();
-//		testserverClientLoad.put("1", 5);
-//		testserverClientLoad.put("2", 10);
-//		testserverClientLoad.put("3", 2);
-		testserverAddresses = new Hashtable<String, JSONObject>();
-
-		JSONObject address = new JSONObject();
-		address.put("hostname", "localhost");
-		address.put("port", 3790);
-		testserverAddresses.put("1", address);
 				
 		// Local Storage:
 				
@@ -256,6 +244,9 @@ public class Control extends Thread {
 								address.put("port", port);
 								serverAddresses.put(id, address);
 								
+								// [ADD] synchronise the update with backup server
+								synchroniseNewServer(backupServerConnections, id, address);
+								
 								// send AUTHENTICATE_SUCCESS 
 								sendAuthenticateSuccess(con, "authenticated successfully with main centralised server");
 							}
@@ -340,7 +331,7 @@ public class Control extends Thread {
 				case "SYNCHRONISE_USER_STORE":
 					// new protocol to synchronise server memory on connected servers' addresses
 					// "command": "SYNCHRONISE_USER_STORE"
-					// "activity": {{"username1": "secret1"}, {"username2": "secret2"}} // Array of JSON Objects
+					// "activity": {"serverID1": {"hostname": "hostname1", "port": "port1"}} // Array of JSON Objects
 
 					// send invalid message if message was corrupted
 					// if message was valid, allow synchronisation of the 2 centralised servers
@@ -356,6 +347,37 @@ public class Control extends Thread {
 					break;
 					
 				// ***** SYNCHRONISE_USER_STORE (END) *****
+					
+				// ***** SYNCHRONISE_NEW_SERVER (START) *****
+					
+				case "SYNCHRONISE_NEW_SERVER":
+					// new protocol to synchronise server memory on connected servers' addresses
+					// "command": "SYNCHRONISE_NEW_SERVER"
+					// "id": "<serverID>"
+					// "address": {"hostname": "hostname1", "port": "port1"} // Array of JSON Objects
+
+					// send invalid message if message was corrupted
+					
+					if (message.containsKey("address")) {
+						// if message was valid, allow synchronisation of the 2 centralised servers
+						// update serverLoad and serverAddress
+						// retrieve server id, hostname, and port for load balance
+						String id = (String) message.get("id");
+						JSONObject address = (JSONObject) message.get("address");
+						
+						// initialise the server into memory
+						// initialise client load to 0
+						serverClientLoad.put(id, 0);
+						// update server address information
+						serverAddresses.put(id, address);
+					} else {
+						// send invalid message if info is not found and close connection
+						sendInvalidMessage(con, "the received message did not contain activity object");
+						return true;
+					}
+					break;
+					
+				// ***** SYNCHRONISE_NEW_SERVER (END) *****
 
 				// ***** LOGIN (START) *****
 
@@ -537,9 +559,14 @@ public class Control extends Thread {
 			// do something with 5 second intervals in between
 //			System.out.println("There are " + connections.size() + " servers connected.");
 //			System.out.println("There are " + backupServerConnections.size() + " backup servers connected.");
-//			System.out.println("ServerLoad status:");
+			System.out.println("ServerLoad status:");
 
 			for (Map.Entry<String, Integer> entry : serverClientLoad.entrySet()) {
+				System.out.println("Server:" + entry.getKey());
+				System.out.println("Load:" + entry.getValue());
+			}
+			
+			for (Map.Entry<String, JSONObject> entry : serverAddresses.entrySet()) {
 				System.out.println("Server:" + entry.getKey());
 				System.out.println("Load:" + entry.getValue());
 			}
@@ -732,9 +759,7 @@ public class Control extends Thread {
 		// create JSON object for new protocol
 		JSONObject synchroniseServerAddressesMessage = new JSONObject();
 		synchroniseServerAddressesMessage.put("command", "SYNCHRONISE_SERVER_ADDRESSES");
-		//synchroniseServerAddressesMessage.put("activity", serverAddresses);
-		// [DELETE] for testing
-		synchroniseServerAddressesMessage.put("activity", testserverAddresses);
+		synchroniseServerAddressesMessage.put("activity", serverAddresses);
 		// write message to backup server as JSON object
 		if (c.writeMsg(synchroniseServerAddressesMessage.toJSONString())) {
 			log.debug("[Port-" + Settings.getLocalPort() + "]: SYNCHRONISE_SERVER_ADDRESSES sent to "
@@ -761,6 +786,26 @@ public class Control extends Thread {
 		} else {
 			log.debug("[Port-" + Settings.getLocalPort() + "]: SYNCHRONISE_USER_STORE sending to "
 					+ c.getSocket().getRemoteSocketAddress() + " failed");
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void synchroniseNewServer(ArrayList<Connection> c, String serverId, JSONObject address) {
+		log.debug("synchronising new server to backup");
+		// create JSON object for new protocol
+		JSONObject synchroniseNewServerMessage = new JSONObject();
+		synchroniseNewServerMessage.put("command", "SYNCHRONISE_NEW_SERVER");
+		synchroniseNewServerMessage.put("id", serverId);
+		synchroniseNewServerMessage.put("address", address);
+		for (Connection backupCon : c) {
+			// write message to backup server as JSON object
+			if (backupCon.writeMsg(synchroniseNewServerMessage.toJSONString())) {
+				log.debug("[Port-" + Settings.getLocalPort() + "]: SYNCHRONISE_NEW_SERVER sent to "
+						+ backupCon.getSocket().getRemoteSocketAddress());
+			} else {
+				log.debug("[Port-" + Settings.getLocalPort() + "]: SYNCHRONISE_NEW_SERVER sending to "
+						+ backupCon.getSocket().getRemoteSocketAddress() + " failed");
+			}
 		}
 	}
 	
