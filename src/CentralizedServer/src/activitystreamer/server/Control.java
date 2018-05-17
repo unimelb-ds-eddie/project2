@@ -361,30 +361,47 @@ public class Control extends Thread {
 
 				case "LOGIN":
 					System.out.println("someone wants to login");
-
+					
 					// extract client's details from JSON
 					String username_client = (String) message.get("username");
 					String secret_client = (String) message.get("secret");
+					
+					if (username_client != null && secret_client != null)
+					{
+						// authenticate the client's details
+						if (authenticateClient(username_client, secret_client)) {
+							// send login success
+							System.out.println("Login success!");
+							sendLoginSuccess(con, username_client);
 
-					// authenticate the client's details
-					if (authenticateClient(username_client, secret_client)) {
-						// send login success
-						System.out.println("Login success!");
-						sendLoginSuccess(con, username_client);
+							// redirect if the client is connected to central server to login
+							// by calling executeLoadBalance
+							// do something below to reflect this
+							executeLoadBalance(con);
 
-						// redirect if the client is connected to central server to login
-						// by calling executeLoadBalance
-						// do something below to reflect this
-						executeLoadBalance(con);
-
-					} else {
-						System.out.println("Login failed!");
-						// send login failed
-						sendLoginFailed(con);
-						// close connection
-						System.out.println("Closing connection...");
-						return true;
+						} else {
+							System.out.println("Login failed!");
+							// send login failed
+							sendLoginFailed(con);
+							// close connection
+							System.out.println("Closing connection...");
+							return true;
+						}
 					}
+					else
+					{
+						if (username_client == null)
+						{
+							sendInvalidMessage(con, "Username not supplied!");
+						}
+						else if (secret_client == null)
+						{
+							sendInvalidMessage(con, "Secret not supplied!");
+						}
+					}
+
+					
+				
 					break;
 
 				// ***** LOGIN (END) *****
@@ -419,29 +436,51 @@ public class Control extends Thread {
 
 				case "REGISTER":
 					System.out.println("Someone wants to register");
+					System.out.println(message);
+					System.out.println(message.containsKey("username"));
 
 					// retrieve client's details from JSON object 'message'
 					String username = (String) message.get("username");
 					String secret = (String) message.get("secret");
 
-					// check if username exists. If yes, invoke register fail
-					if (!checkUsernameExist(username)) {
-						// this is the case where it doesn't exist
-						// write to DB and send register success
-						System.out.println("Username doesn't exist, registering now...");
-						storeUsernameSecret(username, secret);
-						sendRegisterSuccess(con, username);
+					if (username != null && secret != null)
+					{
+						System.out.println("Username and secret isn't null");
+						
+						// check if username exists. If yes, invoke register fail
+						if (!checkUsernameExist(username)) 
+						{
+							// this is the case where it doesn't exist
+							// write to DB and send register success
+							System.out.println("Username doesn't exist, registering now...");
+							storeUsernameSecret(username, secret);
+							sendRegisterSuccess(con, username);
 
-					} else {
-						// this is the case where username already exists
-						// send register fail
-						System.out.println("Username exists, failing to register!");
-						sendRegisterFailed(con, username);
+						} 
+						else 
+						{
+							// this is the case where username already exists
+							// send register fail
+							System.out.println("Username exists, failing to register!");
+							sendRegisterFailed(con, username);
 
-						// close connection
-						return true;
+							// close connection
+							return true;
+						}
 					}
-
+					else
+					{
+						if (username == null)
+						{
+							sendInvalidMessage(con, "Username not supplied!");
+						}
+						else if (secret == null)
+						{
+							sendInvalidMessage(con, "Secret not supplied!");
+						}
+						
+					}
+					
 					break;
 
 				// ***** REGISTER (END) *****
