@@ -29,7 +29,12 @@
 9. AUTHENTICATE_SUCCESS
 
 ### TODO
-- Server authentication with centralised server (completed in my sleep)
-  - add server id, addresses to centralised server memory
-- real-time synchronisation of requests to backup server (e.g. when new client login successfully, have to update backup server)
-  - **to be incorporated as part of YJ's part**
+- Client CMD Line (Edward)
+- Invalid Message (YJ, Eddie)
+- Message Communication (Rahmat)
+- Update of server load (Eddie)
+- Synchronisation of client update to backup (YJ)
+- Synchronisation of server update to backup (Eddie)
+- Synchronisation of registration update to backup (YJ)
+- Update centralised server when server/client leaves network and synchronise to backup (Edward)
+ 
