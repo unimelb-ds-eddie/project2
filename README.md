@@ -38,4 +38,4 @@
 - Synchronisation of registration update to backup (YJ)
 - Update centralised server when server/client leaves network and synchronise to backup (Edward)
 - Failure model of centralised server (Eddie) 
-- Fix user store (Eddie)
+- Fix user store (Eddie - Done)
