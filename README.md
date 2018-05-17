@@ -37,4 +37,4 @@
 - Synchronisation of server update to backup (Eddie)
 - Synchronisation of registration update to backup (YJ)
 - Update centralised server when server/client leaves network and synchronise to backup (Edward)
- 
+- Failure model of centralised server (Eddie) 
