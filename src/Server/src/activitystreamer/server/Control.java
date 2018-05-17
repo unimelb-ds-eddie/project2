@@ -28,7 +28,7 @@ public class Control extends Thread {
 	private static boolean term = false;
 	private static Listener listener;
 	// added variables
-	public static Connection centralisedServerConnection;
+	private static Connection centralisedServerConnection;
 
 	protected static Control control = null;
 
@@ -67,12 +67,18 @@ public class Control extends Thread {
 				// ONLY initiate connection to the main centralised host server
 				// that would be the ONLY outgoing connection for the regular server
 				sendServerAuthentication(
-						outgoingConnection(new Socket(Settings.getRemoteHostname(), Settings.getRemotePort())));
+						outgoingConnection(new Socket(Settings.getCentralisedRemoteHostname(), Settings.getCentralisedRemotePort())));
 
-			} catch (IOException e) {
-				log.error("failed to make connection to " + Settings.getRemoteHostname() + ":"
-						+ Settings.getRemotePort() + " :" + e);
-				System.exit(-1);
+			} catch (IOException ex) {
+				
+				try {
+					sendServerAuthentication(
+							outgoingConnection(new Socket(Settings.getRemoteHostname(), Settings.getRemotePort())));
+				} catch (IOException e) {
+					log.error("failed to make connection to " + Settings.getRemoteHostname() + ":"
+							+ Settings.getRemotePort() + " :" + e);
+					System.exit(-1);
+				}
 			}
 		}
 	}
@@ -186,6 +192,7 @@ public class Control extends Thread {
 				case "LOGIN":
 					System.out.println(msg);
 					return false;
+					
 				default:
 					// if command is not valid send invalid message and close connection
 					sendInvalidMessage(con, "the received message did not contain a valid command");
@@ -215,8 +222,19 @@ public class Control extends Thread {
 	}
 	
 	public synchronized void centralisedServerConnectionClosed(Connection con) {
-		if (!term)
+		if (!term) {
 			centralisedServerConnection.closeCon();
+			try {
+				// establish connection to default centralised server first, if not backup server
+				sendServerAuthentication(
+						outgoingConnection(new Socket(Settings.getBackupRemoteHostname(), Settings.getBackupRemotePort())));
+
+			} catch (IOException e) {
+				log.error("failed to make connection to " + Settings.getBackupRemoteHostname() + ":"
+						+ Settings.getBackupRemotePort() + " :" + e);
+				System.exit(-1);
+			}
+		}
 	}
 
 	/*

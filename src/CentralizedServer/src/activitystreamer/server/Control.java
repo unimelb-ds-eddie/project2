@@ -151,7 +151,8 @@ public class Control extends Thread {
 							updateBackupConnection(con);
 							sendBackupAuthenticationSuccess(con, "authenticated successfully with main centralised server");
 							// initiate server synchronisation
-							synchroniseCentralisedServers(con);
+							synchroniseBackupServer(con);
+							//synchroniseCentralisedServers(con);
 						}
 					} else {
 						// send invalid message if secret is not found and close connection
@@ -236,21 +237,25 @@ public class Control extends Thread {
 								String hostname = (String) message.get("hostname");
 								int port = (int)(long) message.get("port");
 								
+								JSONObject address = new JSONObject();
+								address.put("hostname", hostname);
+								address.put("port", port);
+								
 								// set server id
 								con.setServerID(id);
 								
 								// initialise the server into memory
-								// initialise client load to 0
-								serverClientLoad.put(id, 0);
-								// update server address information
-								JSONObject address = new JSONObject();
-								address.put("hostname", hostname);
-								address.put("port", port);
-								serverAddresses.put(id, address);
+								// [NOTE] in the event the main centralised server crashes and servers connect to backup, do nothing
+								if(!serverClientLoad.containsKey(id)) {
+									// initialise client load to 0
+									serverClientLoad.put(id, 0);
+									// update server address information
+									serverAddresses.put(id, address);	
+								}
 								
-								// [ADD] synchronise the update with backup server
+								// synchronise the update with backup server
 								synchroniseNewServer(backupServerConnections, id, address);
-								
+
 								// send AUTHENTICATE_SUCCESS 
 								sendAuthenticateSuccess(con, "authenticated successfully with main centralised server");
 							}
@@ -289,68 +294,51 @@ public class Control extends Thread {
 
 				// ***** AUTHENTICATION_FAIL (END) ******
 					
-				// ***** SYNCHRONISE_SERVER_LOAD (START) *****
+				// ***** SYNCHRONISE (START) *****
 					
-				case "SYNCHRONISE_SERVER_LOAD":
+				case "SYNCHRONISE":
 					// new protocol to synchronise server memory on existing server load
-					// "command": "SYNCHRONISE_SERVER_LOAD"
-					// "activity": {"serverID1": "clientLoad1", "serverID2": "clientLoad2"} // Array of JSON Objects
-
-					// send invalid message if message was corrupted
-					// if message was valid, allow synchronisation of the 2 centralised servers
-					if (message.containsKey("activity")) {
-						// load it into serverClientLoad memory
-						updateServerClientLoad((JSONObject) message.get("activity"));
-					} else {
-						// send invalid message if info is not found and close connection
-						sendInvalidMessage(con, "the received message did not contain activity object");
+					// "command": "SYNCHRONISE"
+					// "load": server load
+					// "address": server addresses
+					// "user": user store
+					
+					// check if server is authenticated and if it's a backup centralised server
+					if (con.isServerAuthenticated() == false) {
+						sendInvalidMessage(con, "server is not authenticated");
 						return true;
+					} else if (con.isBackupCentralisedServer() == false) {
+						sendInvalidMessage(con, "server is not a backup centralised server");
+						return true;
+					} else {
+						boolean hasLoad = message.containsKey("load");
+						boolean hasAddress = message.containsKey("address");
+						boolean hasUser = message.containsKey("user");
+						
+						// send invalid message if does not contain valid message
+						if (hasLoad && hasAddress && hasUser) {
+							// load it into serverClientLoad memory
+							updateServerClientLoad((JSONObject) message.get("load"));
+							updateServerAddresses((JSONObject) message.get("address"));
+							ArrayList<JSONObject> tempUserStore = (ArrayList<JSONObject>) message.get("user");
+							updateUserStore(tempUserStore);
+							log.info("synchronisation completed");
+							
+						} else {
+							// respond with invalid message if any of the attributes were missing and close the connection
+							if(!hasLoad) {
+								sendInvalidMessage(con, "the received message did not contain server load");
+							} else if(!hasAddress) {
+								sendInvalidMessage(con, "the received message did not contain server addresses");
+							} else if(!hasUser) {
+								sendInvalidMessage(con, "the received message did not contain user store");
+							} 
+							return true;
+						}
 					}
 					break;
 					
-				// ***** SYNCHRONISE_SERVER_LOAD (END) *****
-					
-				// ***** SYNCHRONISE_SERVER_ADDRESSES (START) *****
-					
-				case "SYNCHRONISE_SERVER_ADDRESSES":
-					// new protocol to synchronise server memory on connected servers' addresses
-					// "command": "SYNCHRONISE_SERVER_ADDRESSES"
-					// "activity": {"serverID1": {"hostname": "hostname1", "port": "port1"}, "serverID2": {"hostname": "hostname2", "port": "port2"}} // Array of JSON Objects
-
-					// send invalid message if message was corrupted
-					// if message was valid, allow synchronisation of the 2 centralised servers
-					if (message.containsKey("activity")) {
-						updateServerAddresses((JSONObject) message.get("activity"));
-					} else {
-						// send invalid message if info is not found and close connection
-						sendInvalidMessage(con, "the received message did not contain activity object");
-						return true;
-					}
-					break;
-					
-				// ***** SYNCHRONISE_SERVER_ADDRESSES (END) *****
-				
-				// ***** SYNCHRONISE_USER_STORE (START) *****
-					
-				case "SYNCHRONISE_USER_STORE":
-					// new protocol to synchronise server memory on connected servers' addresses
-					// "command": "SYNCHRONISE_USER_STORE"
-					// "activity": {"serverID1": {"hostname": "hostname1", "port": "port1"}} // Array of JSON Objects
-
-					// send invalid message if message was corrupted
-					// if message was valid, allow synchronisation of the 2 centralised servers
-					if (message.containsKey("activity")) {
-						// do something
-						ArrayList<JSONObject> tempUserStore = (ArrayList<JSONObject>) message.get("activity");
-						updateUserStore(tempUserStore);
-					} else {
-						// send invalid message if info is not found and close connection
-						sendInvalidMessage(con, "the received message did not contain activity object");
-						return true;
-					}
-					break;
-					
-				// ***** SYNCHRONISE_USER_STORE (END) *****
+				// ***** SYNCHRONISE (END) *****
 					
 				// ***** SYNCHRONISE_NEW_SERVER (START) *****
 					
@@ -597,11 +585,13 @@ public class Control extends Thread {
 	public synchronized void connectionClosed(Connection con) {
 		if (!term) {
 			connections.remove(con);
-			// remove from serverClientLoad and serverAddresses
-			String serverId = con.getServerId();
-			serverClientLoad.remove(serverId);
-			serverAddresses.remove(serverId);
-			sendBackupRemoveServer(backupServerConnections, serverId);
+			if(con.isServerAuthenticated()) {
+				// remove from serverClientLoad and serverAddresses
+				String serverId = con.getServerId();
+				serverClientLoad.remove(serverId);
+				serverAddresses.remove(serverId);
+				sendBackupRemoveServer(backupServerConnections, serverId);
+			}
 		}
 		
 	}
@@ -661,7 +651,7 @@ public class Control extends Thread {
 			
 			for (Map.Entry<String, JSONObject> entry : serverAddresses.entrySet()) {
 				System.out.println("Server:" + entry.getKey());
-				System.out.println("Load:" + entry.getValue());
+				System.out.println("Address:" + entry.getValue());
 			}
 
 			// kick clients off
@@ -816,49 +806,23 @@ public class Control extends Thread {
 	
 	// Synchronise centralised servers
 	
-	private void synchroniseCentralisedServers(Connection c) {
-		// synchronising memory and user store
-		log.debug("initiate synchronisation of centralised servers");
-		// synchronise servers' client load memory
-		synchroniseServerLoad(c);
-		// synchronise server addresses
-		synchroniseServerAddresses(c);
-		// synchornise user store
-		synchroniseUserStore(c);
-		// [NOTE] what if the synchronisation fail? server crashes mid-way?
-		// close connection and restart?
-	}
-	
 	@SuppressWarnings("unchecked")
-	private void synchroniseServerLoad(Connection c) {
-		log.debug("synchronising servers' client load");
+	private void synchroniseBackupServer(Connection c) {
+		log.debug("synchronising with backup server");
 		// create JSON object for new protocol
-		JSONObject synchroniseServerLoadMessage = new JSONObject();
-		synchroniseServerLoadMessage.put("command", "SYNCHRONISE_SERVER_LOAD");
-		synchroniseServerLoadMessage.put("activity", serverClientLoad);
+		JSONObject synchroniseUserStoreMessage = new JSONObject();
+		synchroniseUserStoreMessage.put("command", "SYNCHRONISE");
+		synchroniseUserStoreMessage.put("load", serverClientLoad);
+		synchroniseUserStoreMessage.put("address", serverAddresses);
+//		synchroniseUserStoreMessage.put("user", retrieveUserLocalStorage());
+		// [DELETE] for testing
+		synchroniseUserStoreMessage.put("user", testretrieveUserLocalStorage());
 		// write message to backup server as JSON object
-		if (c.writeMsg(synchroniseServerLoadMessage.toJSONString())) {
-			log.debug("[Port-" + Settings.getLocalPort() + "]: SYNCHRONISE_SERVER_LOAD sent to "
+		if (c.writeMsg(synchroniseUserStoreMessage.toJSONString())) {
+			log.debug("[Port-" + Settings.getLocalPort() + "]: SYNCHRONISE sent to "
 					+ c.getSocket().getRemoteSocketAddress());
 		} else {
-			log.debug("[Port-" + Settings.getLocalPort() + "]: SYNCHRONISE_SERVER_LOAD sending to "
-					+ c.getSocket().getRemoteSocketAddress() + " failed");
-		}
-	}
-	
-	@SuppressWarnings("unchecked")
-	private void synchroniseServerAddresses(Connection c) {
-		log.debug("synchronising server addresses");
-		// create JSON object for new protocol
-		JSONObject synchroniseServerAddressesMessage = new JSONObject();
-		synchroniseServerAddressesMessage.put("command", "SYNCHRONISE_SERVER_ADDRESSES");
-		synchroniseServerAddressesMessage.put("activity", serverAddresses);
-		// write message to backup server as JSON object
-		if (c.writeMsg(synchroniseServerAddressesMessage.toJSONString())) {
-			log.debug("[Port-" + Settings.getLocalPort() + "]: SYNCHRONISE_SERVER_ADDRESSES sent to "
-					+ c.getSocket().getRemoteSocketAddress());
-		} else {
-			log.debug("[Port-" + Settings.getLocalPort() + "]: SYNCHRONISE_SERVER_ADDRESSES sending to "
+			log.debug("[Port-" + Settings.getLocalPort() + "]: SYNCHRONISE sending to "
 					+ c.getSocket().getRemoteSocketAddress() + " failed");
 		}
 	}
@@ -878,25 +842,6 @@ public class Control extends Thread {
 			log.debug("[Port-" + Settings.getLocalPort() + "]: BACKUP_REGISTER sending to "
 					+ c.getSocket().getRemoteSocketAddress() + " failed");
 			return false;
-		}
-	}
-	
-	@SuppressWarnings("unchecked")
-	private void synchroniseUserStore(Connection c) {
-		log.debug("synchronising user store");
-		// create JSON object for new protocol
-		JSONObject synchroniseUserStoreMessage = new JSONObject();
-		synchroniseUserStoreMessage.put("command", "SYNCHRONISE_USER_STORE");
-//		synchroniseUserStoreMessage.put("activity", retrieveUserLocalStorage());
-		// [DELETE] for testing
-		synchroniseUserStoreMessage.put("activity", testretrieveUserLocalStorage());
-		// write message to backup server as JSON object
-		if (c.writeMsg(synchroniseUserStoreMessage.toJSONString())) {
-			log.debug("[Port-" + Settings.getLocalPort() + "]: SYNCHRONISE_USER_STORE sent to "
-					+ c.getSocket().getRemoteSocketAddress());
-		} else {
-			log.debug("[Port-" + Settings.getLocalPort() + "]: SYNCHRONISE_USER_STORE sending to "
-					+ c.getSocket().getRemoteSocketAddress() + " failed");
 		}
 	}
 	

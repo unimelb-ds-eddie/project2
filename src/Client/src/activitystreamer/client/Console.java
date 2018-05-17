@@ -25,10 +25,11 @@ public class Console extends Thread {
 			try {
 				obj = (JSONObject) parser.parse(msg);
 				ClientSkeleton.getInstance().sendActivityObject(obj);
-
+				sc.close();
 			} catch (ParseException e1) {
 				System.out.println("invalid JSON object entered into input text field, data not sent");
 			}
+			
 
 		}
 	}
