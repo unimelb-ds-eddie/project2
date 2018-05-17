@@ -22,6 +22,7 @@ public class MessageListener extends Thread {
 
 	@Override
 	public void run() {
+		
 		try {
 			String msg = null;
 			// Read messages from the server while the end of the stream is not reached
@@ -31,6 +32,7 @@ public class MessageListener extends Thread {
 				JSONObject newMessage = (JSONObject) parser.parse(msg);
 				ClientSkeleton.getInstance().getTextFrame().setOutputText(newMessage);
 				term = ClientSkeleton.getInstance().process(this, newMessage);
+				
 			}
 			SocketAddress remoteSocketAddress = ClientSkeleton.getInstance().getSocket().getRemoteSocketAddress();
 			ClientSkeleton.getInstance().getSocket().close();

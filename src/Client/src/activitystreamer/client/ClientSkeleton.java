@@ -11,6 +11,8 @@ import java.net.UnknownHostException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.ParseException;
+
 import activitystreamer.util.Settings;
 
 public class ClientSkeleton extends Thread {
@@ -25,6 +27,9 @@ public class ClientSkeleton extends Thread {
 	private static String tempUsername;
 	private static String tempSecret;
 
+	
+	
+	
 	public static ClientSkeleton getInstance() {
 		if (clientSolution == null) {
 			clientSolution = new ClientSkeleton();
@@ -35,7 +40,23 @@ public class ClientSkeleton extends Thread {
 	public ClientSkeleton() {
 		start();
 		textFrame = new TextFrame();
+	
+//		cmd = new Console();
+//		cmd.run();
+
+
 	}
+	
+//	public void sendMsgViaConsole(String msg) {
+//		 msg = msg.trim().replaceAll("\r", "").replaceAll("\n", "").replaceAll("\t", "");
+//		JSONObject obj;
+//		try {
+//			obj = (JSONObject) parser.parse(msg);
+//			sendActivityObject(obj);
+//		} catch (ParseException e1) {
+//			log.error("invalid JSON object entered into input text field, data not sent");
+//		}
+//	}
 
 	@Override
 	public void run() {
@@ -49,7 +70,8 @@ public class ClientSkeleton extends Thread {
 			reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
 			writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
 			ml = new MessageListener(reader);
-			ml.start();
+			ml.start();        
+			new Console().start();
 
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
@@ -57,6 +79,8 @@ public class ClientSkeleton extends Thread {
 
 		}
 	}
+	
+	
 
 	public boolean process(MessageListener ml, JSONObject message) {
 		try {
@@ -142,7 +166,7 @@ public class ClientSkeleton extends Thread {
 					break;
 
 				// REGISTER_FAILED ends
-
+			
 				// REGISTER_SUCCESS starts
 
 				case "REGISTER_SUCCESS":
@@ -206,6 +230,7 @@ public class ClientSkeleton extends Thread {
 				// nothing
 				break;
 			}
+			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			JSONObject logoutMsg = new JSONObject();
@@ -266,11 +291,11 @@ public class ClientSkeleton extends Thread {
 		run();
 		// ADD: then initiate login
 		// Marshaling login parameters into JSON object
-		JSONObject loginMessage = new JSONObject();
-		loginMessage.put("command", "LOGIN");
-		loginMessage.put("username", Settings.getUsername());
-		loginMessage.put("secret", Settings.getSecret());
-		sendActivityObject(loginMessage);
+//		JSONObject loginMessage = new JSONObject();
+//		loginMessage.put("command", "LOGIN");
+//		loginMessage.put("username", Settings.getUsername());
+//		loginMessage.put("secret", Settings.getSecret());
+//		sendActivityObject(loginMessage);
 	}
 
 	public Socket getSocket() {

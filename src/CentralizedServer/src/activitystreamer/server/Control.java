@@ -486,8 +486,6 @@ public class Control extends Thread {
 
 				case "REGISTER":
 					System.out.println("Someone wants to register");
-					System.out.println(message);
-					System.out.println(message.containsKey("username"));
 
 					// retrieve client's details from JSON object 'message'
 					String username = (String) message.get("username");
@@ -505,6 +503,14 @@ public class Control extends Thread {
 							System.out.println("Username doesn't exist, registering now...");
 							storeUsernameSecret(username, secret);
 							sendRegisterSuccess(con, username);
+							
+							// synchronize with backup server
+							for (Connection c: backupServerConnections)
+							{
+								// do sync
+								forwardRegisterToBackup(c, username, secret);
+						
+							}
 
 						} 
 						else 
@@ -534,7 +540,20 @@ public class Control extends Thread {
 					break;
 
 				// ***** REGISTER (END) *****
+				// ***** BACKUP_REGISTER (START) *****
+					
+				case "BACKUP_REGISTER":
+					log.info("Someone wants to register on the backup server");
+					
+					// retrieve client's details from JSON object 'message'
+					String username_backup = (String) message.get("username");
+					String secret_backup = (String) message.get("secret");
 
+					log.info("Username doesn't exist, registering now...");
+					storeUsernameSecret(username_backup, secret_backup);
+						
+					
+					break;
 				// ***** INVALID_MESSAGE (START) *****
 
 				case "INVALID_MESSAGE":
@@ -843,6 +862,24 @@ public class Control extends Thread {
 		} else {
 			log.debug("[Port-" + Settings.getLocalPort() + "]: SYNCHRONISE_SERVER_ADDRESSES sending to "
 					+ c.getSocket().getRemoteSocketAddress() + " failed");
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	private boolean forwardRegisterToBackup(Connection c, String username, String secret) {
+		JSONObject fwdRegMsg = new JSONObject();
+		fwdRegMsg.put("command", "BACKUP_REGISTER");
+		fwdRegMsg.put("username", username);
+		fwdRegMsg.put("secret", secret);
+		// write message
+		if (c.writeMsg(fwdRegMsg.toJSONString())) {
+			log.debug("[Port-" + Settings.getLocalPort() + "]: BACKUP_REGISTER sent to "
+					+ c.getSocket().getRemoteSocketAddress());
+			return true;
+		} else {
+			log.debug("[Port-" + Settings.getLocalPort() + "]: BACKUP_REGISTER sending to "
+					+ c.getSocket().getRemoteSocketAddress() + " failed");
+			return false;
 		}
 	}
 	
