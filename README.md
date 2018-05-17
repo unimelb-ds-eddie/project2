@@ -41,6 +41,12 @@
 - Synchronisation of when serevr leaves and update to backup (Eddie - Done)
 - Synchronisation of registration update to backup (YJ)
 - Redirect client to main server when server fails (Edward)
-- Failure model of centralised server (Eddie) 
+- Failure model of centralised server (Eddie - Done)
+  - **how i did it**
+  - concept: when main centralised server fails, all clients connected to regular servers will not be affected; redirect all servers to backup
+  - hardcopy backup server address to Settings
+  - when centralised server is closed, automatically connect to backup remote hostname and remote port
+  - at server end -> send authentication to backup (as per normal) and backup will authenticate server
+  - as for the memory, if server id is already found in memory, backup server will not update anything (as compared to authenticating new servers)
 - Fix user store (Eddie - Done)
 - check if server is authenticated before each synchronise commands (Eddie)
