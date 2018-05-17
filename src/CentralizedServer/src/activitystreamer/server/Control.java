@@ -236,21 +236,25 @@ public class Control extends Thread {
 								String hostname = (String) message.get("hostname");
 								int port = (int)(long) message.get("port");
 								
+								JSONObject address = new JSONObject();
+								address.put("hostname", hostname);
+								address.put("port", port);
+								
 								// set server id
 								con.setServerID(id);
 								
 								// initialise the server into memory
-								// initialise client load to 0
-								serverClientLoad.put(id, 0);
-								// update server address information
-								JSONObject address = new JSONObject();
-								address.put("hostname", hostname);
-								address.put("port", port);
-								serverAddresses.put(id, address);
+								// [NOTE] in the event the main centralised server crashes and servers connect to backup, do nothing
+								if(!serverClientLoad.containsKey(id)) {
+									// initialise client load to 0
+									serverClientLoad.put(id, 0);
+									// update server address information
+									serverAddresses.put(id, address);	
+								}
 								
-								// [ADD] synchronise the update with backup server
+								// synchronise the update with backup server
 								synchroniseNewServer(backupServerConnections, id, address);
-								
+
 								// send AUTHENTICATE_SUCCESS 
 								sendAuthenticateSuccess(con, "authenticated successfully with main centralised server");
 							}

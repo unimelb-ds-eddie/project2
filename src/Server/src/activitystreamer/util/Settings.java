@@ -19,6 +19,8 @@ public class Settings {
 	private static String username = "anonymous";
 	// added global variable(s)
 	private static String serverId = nextSecret();
+	private static String backupRemoteHostname = "localhost"; // hardcoded
+	private static int backupRemotePort = 3781; // hardcoded
 
 	public static int getLocalPort() {
 		return localPort;
@@ -104,6 +106,16 @@ public class Settings {
 
 	public static String nextSecret() {
 		return new BigInteger(130, random).toString(32);
+	}
+	
+	// added methods
+	
+	public static String getBackupRemoteHostname() {
+		return backupRemoteHostname;
+	}
+	
+	public static int getBackupRemotePort() {
+		return backupRemotePort;
 	}
 
 }

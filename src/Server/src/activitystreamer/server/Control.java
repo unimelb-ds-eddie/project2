@@ -28,7 +28,7 @@ public class Control extends Thread {
 	private static boolean term = false;
 	private static Listener listener;
 	// added variables
-	public static Connection centralisedServerConnection;
+	private static Connection centralisedServerConnection;
 
 	protected static Control control = null;
 
@@ -215,8 +215,19 @@ public class Control extends Thread {
 	}
 	
 	public synchronized void centralisedServerConnectionClosed(Connection con) {
-		if (!term)
+		if (!term) {
 			centralisedServerConnection.closeCon();
+			try {
+				// establish connection to backup
+				sendServerAuthentication(
+						outgoingConnection(new Socket(Settings.getBackupRemoteHostname(), Settings.getBackupRemotePort())));
+
+			} catch (IOException e) {
+				log.error("failed to make connection to " + Settings.getBackupRemoteHostname() + ":"
+						+ Settings.getBackupRemotePort() + " :" + e);
+				System.exit(-1);
+			}
+		}
 	}
 
 	/*
