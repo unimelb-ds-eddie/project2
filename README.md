@@ -49,7 +49,7 @@
 
 ### TODO
 - Client CMD Line (Edward)
-- Invalid Message (YJ - Done, Eddie)
+- Invalid Message (YJ - Done, Eddie - Done)
 - Message Communication (Rahmat)
 - Update of server load (Eddie - Done)
 - Synchronisation of new client update to backup (YJ)
