@@ -32,10 +32,10 @@
 - Client CMD Line (Edward)
 - Invalid Message (YJ, Eddie)
 - Message Communication (Rahmat)
-- Update of server load (Eddie)
+- Update of server load (Eddie - Done)
 - Synchronisation of client update to backup (YJ)
 - Synchronisation of server update to backup (Eddie)
 - Synchronisation of registration update to backup (YJ)
 - Update centralised server when server/client leaves network and synchronise to backup (Edward)
 - Failure model of centralised server (Eddie) 
-- Fix user store
+- Fix user store (Eddie)
