@@ -62,7 +62,7 @@
   - **how i did it**
   - concept: when main centralised server fails, all clients connected to regular servers will not be affected; redirect all servers to backup
   - hardcopy backup server address to Settings
-  - when centralised server is closed, automatically connect to backup remote hostname and remote port
+  - when centralised server is closed, attempt to connect to main centralised server first, if not automatically connect to backup remote hostname and remote port
   - at server end -> send authentication to backup (as per normal) and backup will authenticate server
   - as for the memory, if server id is already found in memory, backup server will not update anything (as compared to authenticating new servers)
 - Fix user store (Eddie - Done)
