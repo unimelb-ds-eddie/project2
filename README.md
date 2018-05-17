@@ -27,6 +27,7 @@
 7. DE_LOAD 
 8. AUTHENTICATE - new information (id, hostname, port)
 9. AUTHENTICATE_SUCCESS
+10. SYNCHRONISED_NEW_SERVER
 
 ### TODO
 - Client CMD Line (Edward)
