@@ -578,11 +578,13 @@ public class Control extends Thread {
 	public synchronized void connectionClosed(Connection con) {
 		if (!term) {
 			connections.remove(con);
-			// remove from serverClientLoad and serverAddresses
-			String serverId = con.getServerId();
-			serverClientLoad.remove(serverId);
-			serverAddresses.remove(serverId);
-			sendBackupRemoveServer(backupServerConnections, serverId);
+			if(con.isServerAuthenticated()) {
+				// remove from serverClientLoad and serverAddresses
+				String serverId = con.getServerId();
+				serverClientLoad.remove(serverId);
+				serverAddresses.remove(serverId);
+				sendBackupRemoveServer(backupServerConnections, serverId);
+			}
 		}
 		
 	}
