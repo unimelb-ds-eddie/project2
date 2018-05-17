@@ -37,7 +37,7 @@
 - Synchronisation of new client update to backup (YJ)
 - Synchronisation of when client leaves and update to backup (YJ)
 - Synchronisation of new server update to backup (Eddie - Done)
-- Synchronisation of when client leaves and update to backup (YJ)
+- Synchronisation of when serevr leaves and update to backup (Eddie)
 - Synchronisation of registration update to backup (YJ)
 - Update centralised server when server/client leaves network and synchronise to backup (Edward)
 - Failure model of centralised server (Eddie) 
