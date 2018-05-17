@@ -67,12 +67,18 @@ public class Control extends Thread {
 				// ONLY initiate connection to the main centralised host server
 				// that would be the ONLY outgoing connection for the regular server
 				sendServerAuthentication(
-						outgoingConnection(new Socket(Settings.getRemoteHostname(), Settings.getRemotePort())));
+						outgoingConnection(new Socket(Settings.getCentralisedRemoteHostname(), Settings.getCentralisedRemotePort())));
 
-			} catch (IOException e) {
-				log.error("failed to make connection to " + Settings.getRemoteHostname() + ":"
-						+ Settings.getRemotePort() + " :" + e);
-				System.exit(-1);
+			} catch (IOException ex) {
+				
+				try {
+					sendServerAuthentication(
+							outgoingConnection(new Socket(Settings.getRemoteHostname(), Settings.getRemotePort())));
+				} catch (IOException e) {
+					log.error("failed to make connection to " + Settings.getRemoteHostname() + ":"
+							+ Settings.getRemotePort() + " :" + e);
+					System.exit(-1);
+				}
 			}
 		}
 	}
@@ -219,7 +225,7 @@ public class Control extends Thread {
 		if (!term) {
 			centralisedServerConnection.closeCon();
 			try {
-				// establish connection to backup
+				// establish connection to default centralised server first, if not backup server
 				sendServerAuthentication(
 						outgoingConnection(new Socket(Settings.getBackupRemoteHostname(), Settings.getBackupRemotePort())));
 
