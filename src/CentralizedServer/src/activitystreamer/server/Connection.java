@@ -30,9 +30,8 @@ public class Connection extends Thread {
 	private String clientUserName; 
 	private String clientSecret;
 	private boolean backupCentralisedServer = false;
-	
+	private String serverId;
 
-	
 	Connection(Socket socket) throws IOException{
 		in = new DataInputStream(socket.getInputStream());
 	    out = new DataOutputStream(socket.getOutputStream());
@@ -137,10 +136,6 @@ public class Connection extends Thread {
 		this.clientSecret = clientSecret;
 	}
 
-
-
-
-	
 	public boolean isBackupCentralisedServer() {
 		return backupCentralisedServer;
 	}
@@ -149,4 +144,11 @@ public class Connection extends Thread {
 		this.backupCentralisedServer = true;
 	}
 	
+	public void setServerID(String serverId) {
+		this.serverId = serverId;
+	}
+
+	public String getServerId() {
+		return serverId;
+	}
 }

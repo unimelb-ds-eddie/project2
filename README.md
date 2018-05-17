@@ -28,15 +28,19 @@
 8. AUTHENTICATE - new information (id, hostname, port)
 9. AUTHENTICATE_SUCCESS
 10. SYNCHRONISED_NEW_SERVER
+11. REMOVE_SERVER
 
 ### TODO
 - Client CMD Line (Edward)
-- Invalid Message (YJ, Eddie)
+- Invalid Message (YJ - Done, Eddie)
 - Message Communication (Rahmat)
 - Update of server load (Eddie - Done)
-- Synchronisation of client update to backup (YJ)
-- Synchronisation of server update to backup (Eddie)
+- Synchronisation of new client update to backup (YJ)
+- Synchronisation of when client leaves and update to backup (YJ)
+- Synchronisation of new server update to backup (Eddie - Done)
+- Synchronisation of when serevr leaves and update to backup (Eddie - Done)
 - Synchronisation of registration update to backup (YJ)
 - Update centralised server when server/client leaves network and synchronise to backup (Edward)
 - Failure model of centralised server (Eddie) 
 - Fix user store (Eddie - Done)
+- check if server is authenticated before each synchronise commands (Eddie)

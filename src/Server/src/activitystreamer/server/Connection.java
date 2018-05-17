@@ -28,6 +28,7 @@ public class Connection extends Thread {
 	private String clientUserName;
 	private String clientSecret;
 	private boolean centralisedServer = false;
+	
 
 	Connection(Socket socket) throws IOException {
 		in = new DataInputStream(socket.getInputStream());
