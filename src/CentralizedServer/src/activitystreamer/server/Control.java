@@ -535,9 +535,9 @@ public class Control extends Thread {
 
 		while (!term) {
 			// do something with 5 second intervals in between
-			System.out.println("There are " + connections.size() + " servers connected.");
-			System.out.println("There are " + backupServerConnections.size() + " backup servers connected.");
-			System.out.println("ServerLoad status:");
+//			System.out.println("There are " + connections.size() + " servers connected.");
+//			System.out.println("There are " + backupServerConnections.size() + " backup servers connected.");
+//			System.out.println("ServerLoad status:");
 
 			for (Map.Entry<String, Integer> entry : serverClientLoad.entrySet()) {
 				System.out.println("Server:" + entry.getKey());
@@ -791,8 +791,7 @@ public class Control extends Thread {
 			if (!checkUsernameExist(username)) {
 				// store username and secret if the username was not found
 				String secret = (String) user.get("secret");
-				//storeUsernameSecret(username, secret);
-				System.out.println("stored + "  + username + " " + secret);
+				storeUsernameSecret(username, secret);
 			}
 		}
 	}
