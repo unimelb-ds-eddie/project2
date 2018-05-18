@@ -394,6 +394,31 @@ public class Control extends Thread {
 					break;
 					
 				// ***** REMOVE_SERVER (END) *****
+					
+				// ***** BACKUP_INCREASE_LOAD (START) *****
+				
+				case "BACKUP_INCREASE_LOAD":
+					
+					// do something
+					log.info("Increase client load on backup server");
+					
+					// retrieve parameters from JSON object
+					String leastId = (String) message.get("leastId");
+					String leastLoad = (String) message.get("leastLoad");
+					int leastLoadInt = Integer.parseInt(leastLoad);
+					int currentLoad = leastLoadInt + 1;
+					System.out.println("Least load:");
+					System.out.println(currentLoad);
+					
+					System.out.println("Attempting to increase server load in serverClientLoad now...");
+					
+					// problem here = nullPointerException
+					serverClientLoad.put(leastId, currentLoad);
+					
+					
+					break;
+					
+				// ***** BACKUP_INCREASE_LOAD (END) *****
 
 				// ***** LOGIN (START) *****
 
@@ -414,7 +439,6 @@ public class Control extends Thread {
 
 							// redirect if the client is connected to central server to login
 							// by calling executeLoadBalance
-							// do something below to reflect this
 							executeLoadBalance(con);
 
 						} else {
@@ -458,6 +482,8 @@ public class Control extends Thread {
 					// print client logged out message and close connection
 					System.out.println(con.getClientUserName() + " logouts");
 					log.info("client " + con.getSocket().getRemoteSocketAddress() + " has logged out");
+					
+					// do something to decrease server load locally and in the backup server
 					return true;
 
 				// ***** LOGOUT (END) *****
@@ -542,6 +568,10 @@ public class Control extends Thread {
 						
 					
 					break;
+					
+				// ***** BACKUP_REGISTER (END) *****
+					
+					
 				// ***** INVALID_MESSAGE (START) *****
 
 				case "INVALID_MESSAGE":
@@ -827,6 +857,7 @@ public class Control extends Thread {
 		}
 	}
 	
+	// trigger the backup server to run BACKUP_REGISTER to register a user
 	@SuppressWarnings("unchecked")
 	private boolean forwardRegisterToBackup(Connection c, String username, String secret) {
 		JSONObject fwdRegMsg = new JSONObject();
@@ -951,6 +982,35 @@ public class Control extends Thread {
 		serverClientLoad.put(leastId, leastLoad + 1);
 		
 		// do something to update the serverClientLoad on backup server
+		// get backup connection first
+		// synchronize with backup server
+		String leastLoadString = Integer.toString(leastLoad);
+		for (Connection c_backup: backupServerConnections)
+		{
+			// do sync
+			forwardBackupLoadInc(c_backup, leastId, leastLoadString);
+	
+		}
+
+	}
+	
+	// trigger the backup server to run BACKUP_INCREASE_LOAD to register a user
+	@SuppressWarnings("unchecked")
+	private boolean forwardBackupLoadInc(Connection c, String leastId, String leastLoad) {
+		JSONObject backupIncreaseLoadMsg = new JSONObject();
+		backupIncreaseLoadMsg.put("command", "BACKUP_INCREASE_LOAD");
+		backupIncreaseLoadMsg.put("leastID", leastId);
+		backupIncreaseLoadMsg.put("leastLoad", leastLoad);
+		// write message
+		if (c.writeMsg(backupIncreaseLoadMsg.toJSONString())) {
+			log.debug("[Port-" + Settings.getLocalPort() + "]: BACKUP_INCREASE_LOAD sent to "
+					+ c.getSocket().getRemoteSocketAddress());
+			return true;
+		} else {
+			log.debug("[Port-" + Settings.getLocalPort() + "]: BACKUP_INCREASE_LOAD sending to "
+					+ c.getSocket().getRemoteSocketAddress() + " failed");
+			return false;
+		}
 	}
 
 	@SuppressWarnings("unchecked")
