@@ -398,8 +398,6 @@ public class Control extends Thread {
 				// ***** BACKUP_INCREASE_LOAD (START) *****
 				
 				case "BACKUP_INCREASE_LOAD":
-					
-					// do something
 					log.info("Increase client load on backup server");
 					
 					// retrieve parameters from JSON object
@@ -407,12 +405,7 @@ public class Control extends Thread {
 					String leastLoad = (String) message.get("leastLoad");
 					int leastLoadInt = Integer.parseInt(leastLoad);
 					int currentLoad = leastLoadInt + 1;
-					System.out.println("Least load:");
-					System.out.println(currentLoad);
-					
-					System.out.println("Attempting to increase server load in serverClientLoad now...");
-					
-					// problem here = nullPointerException
+
 					serverClientLoad.put(leastId, currentLoad);
 					
 					
@@ -461,19 +454,16 @@ public class Control extends Thread {
 							sendInvalidMessage(con, "Secret not supplied!");
 						}
 					}
-
-					
-				
 					break;
 
 				// ***** LOGIN (END) *****
 					
 				// DELOAD
-				case "DE_LOAD":
+				case "BACKUP_DECREASE_LOAD":
 					// decrease one load when a client logouts
-					String decease_id = (String) message.get("id");
-					System.out.println(decease_id + " logouts");
-					serverClientLoad.put(decease_id, serverClientLoad.get(decease_id)-1);
+					String decrease_id = (String) message.get("id");
+					System.out.println(decrease_id + " logouts");
+					serverClientLoad.put(decrease_id, serverClientLoad.get(decrease_id)-1);
 				break;
 									
 				// ***** LOGOUT (START) *****
@@ -997,10 +987,12 @@ public class Control extends Thread {
 	// trigger the backup server to run BACKUP_INCREASE_LOAD to register a user
 	@SuppressWarnings("unchecked")
 	private boolean forwardBackupLoadInc(Connection c, String leastId, String leastLoad) {
+		// create JSON object for triggering BACKUP_INCREASE_LOAD
 		JSONObject backupIncreaseLoadMsg = new JSONObject();
 		backupIncreaseLoadMsg.put("command", "BACKUP_INCREASE_LOAD");
-		backupIncreaseLoadMsg.put("leastID", leastId);
+		backupIncreaseLoadMsg.put("leastId", leastId);
 		backupIncreaseLoadMsg.put("leastLoad", leastLoad);
+		
 		// write message
 		if (c.writeMsg(backupIncreaseLoadMsg.toJSONString())) {
 			log.debug("[Port-" + Settings.getLocalPort() + "]: BACKUP_INCREASE_LOAD sent to "
