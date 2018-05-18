@@ -458,13 +458,27 @@ public class Control extends Thread {
 
 				// ***** LOGIN (END) *****
 					
-				// DELOAD
+				// BACKUP_DECREASE_LOAD
 				case "BACKUP_DECREASE_LOAD":
+					log.info("Backup server decreasing load...");
+					String decrease_id_backup = (String) message.get("id");
+					System.out.println(decrease_id_backup + " logouts");
+					serverClientLoad.put(decrease_id_backup, serverClientLoad.get(decrease_id_backup)-1);
+					break;
+					
+				// DELOAD
+				case "DE_LOAD":
 					// decrease one load when a client logouts
+					log.info("Client logged out!");
 					String decrease_id = (String) message.get("id");
 					System.out.println(decrease_id + " logouts");
 					serverClientLoad.put(decrease_id, serverClientLoad.get(decrease_id)-1);
-				break;
+					
+					for (Connection c: backupServerConnections)
+					{
+						forwardBackupDecreaseLoad(c, decrease_id);
+					}
+					break;
 									
 				// ***** LOGOUT (START) *****
 
@@ -473,7 +487,6 @@ public class Control extends Thread {
 					System.out.println(con.getClientUserName() + " logouts");
 					log.info("client " + con.getSocket().getRemoteSocketAddress() + " has logged out");
 					
-					// do something to decrease server load locally and in the backup server
 					return true;
 
 				// ***** LOGOUT (END) *****
@@ -1073,6 +1086,26 @@ public class Control extends Thread {
 		} else {
 			log.debug("[Port-" + Settings.getLocalPort() + "]: LOGIN_FAILED sending to "
 					+ c.getSocket().getRemoteSocketAddress() + " failed");
+		}
+	}
+	
+	// forwarding function to invoke BACKUP_DECREASE_LOAD in backup server
+	@SuppressWarnings("unchecked")
+	private boolean forwardBackupDecreaseLoad(Connection c, String serverId) {
+		// create JSON object for triggering BACKUP_INCREASE_LOAD
+		JSONObject backupDecreaseLoadMsg = new JSONObject();
+		backupDecreaseLoadMsg.put("command", "BACKUP_DECREASE_LOAD");
+		backupDecreaseLoadMsg.put("id", serverId);
+		
+		// write message
+		if (c.writeMsg(backupDecreaseLoadMsg.toJSONString())) {
+			log.debug("[Port-" + Settings.getLocalPort() + "]: BACKUP_DECREASE_LOAD sent to "
+					+ c.getSocket().getRemoteSocketAddress());
+			return true;
+		} else {
+			log.debug("[Port-" + Settings.getLocalPort() + "]: BACKUP_DECREASE_LOAD sending to "
+					+ c.getSocket().getRemoteSocketAddress() + " failed");
+			return false;
 		}
 	}
 

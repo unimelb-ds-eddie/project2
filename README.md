@@ -46,17 +46,26 @@
 9. REMOVE_SERVER
   {"command": "REMOVE_SERVER",
   "id": <server id>}
+10. BACKUP_REGISTER - after a client registers in the main centralized server, the transaction is replicated in the backup server
+  {"command": "BACKUP_REGISTER".
+  "username": <username>,
+  "secret": <secret>}
+11. BACKUP_INCREASE_LOAD - after a client logins and the server load is updated in the main centralized server, the server load is also updated in the backup server
+  {"command":"BACKUP_INCREASE_LOAD",
+  "leastId": <server id>,
+  "leastLoad": <load count>}
+12. BACKUP_DECREASE_LOAD - after a client logouts and the server load is updated in the main centralized server, the server load is also updated in the backup server
 
 ### TODO
 - Client CMD Line (Edward)
 - Invalid Message (YJ - Done, Eddie - Done)
 - Message Communication (Rahmat)
 - Update of server load (Eddie - Done)
-- Synchronisation of new client update to backup (YJ)
-- Synchronisation of when client leaves and update to backup (YJ)
+- Synchronisation of new client update to backup (YJ - done)
+- Synchronisation of when client leaves and update to backup (YJ - in progress (due to reg. server not fwding DE_LOAD to centralized))
 - Synchronisation of new server update to backup (Eddie - Done)
 - Synchronisation of when serevr leaves and update to backup (Eddie - Done)
-- Synchronisation of registration update to backup (YJ)
+- Synchronisation of registration update to backup (YJ - done)
 - Redirect client to main server when server fails (Edward)
 - Failure model of centralised server (Eddie - Done)
   - **how i did it**
