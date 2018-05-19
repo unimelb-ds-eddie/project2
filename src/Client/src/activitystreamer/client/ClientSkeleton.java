@@ -72,21 +72,20 @@ public class ClientSkeleton extends Thread {
 			ml.start(); 
 			
 			
-//			Scanner scanner = new Scanner(System.in);
-//			String inputStr = null;
-//			//While the user input differs from "exit"
-//			while (true) {				
-//				// Send the input string to the server by writing to the socket output stream
-//				inputStr = scanner.nextLine();
-//				writer.write(inputStr + "\n");
-//				System.out.println("sent");
-//				writer.flush();
-//				if((inputStr).equals("{\"command\" : \"LOGOUT\"}"))
-//					break;
-//			}
-//			JSONObject logout = new JSONObject();
-//			logout.put("command", "LOGOUT");
-//			sendActivityObject(logout);
+			Scanner scanner = new Scanner(System.in);
+	
+			//While the user input differs from "exit"
+			while (true) {				
+				// Send the input string to the server by writing to the socket output stream
+				String inputStr = scanner.nextLine();
+				writer.write(inputStr);
+				writer.flush();
+				if((inputStr).equals("{\"command\" : \"LOGOUT\"}"))
+					break;
+			}
+			JSONObject logout = new JSONObject();
+			logout.put("command", "LOGOUT");
+			sendActivityObject(logout);
 			
 			
 
