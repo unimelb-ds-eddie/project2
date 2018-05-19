@@ -10,14 +10,18 @@ import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
+import activitystreamer.util.Settings;
+
 public class MessageListener extends Thread {
 	private static final Logger log = LogManager.getLogger();
 	private boolean term = false;
 
 	private BufferedReader reader;
+	ClientSkeleton client;
 
-	public MessageListener(BufferedReader reader) {
+	public MessageListener(BufferedReader reader,ClientSkeleton client) {
 		this.reader = reader;
+		this.client = client;
 	}
 
 	@Override
@@ -31,6 +35,7 @@ public class MessageListener extends Thread {
 				JSONParser parser = new JSONParser();
 				JSONObject newMessage = (JSONObject) parser.parse(msg);
 				ClientSkeleton.getInstance().getTextFrame().setOutputText(newMessage);
+				System.out.println(newMessage);
 				term = ClientSkeleton.getInstance().process(this, newMessage);
 				
 			}
@@ -38,9 +43,19 @@ public class MessageListener extends Thread {
 			ClientSkeleton.getInstance().getSocket().close();
 			log.info("connection closed to " + remoteSocketAddress);
 		} catch (SocketException e) {
-			log.info("connection closed");
+			log.info("connected server crashed, trying to redirect to another server.");
+			//try to connect the centralized server
+			Settings.setRemotePort(Settings.getRemoteBackupPort());
+			Settings.setRemoteHostname(Settings.getRemoteBackupHostname());
+			client.executeRedirect();
+			JSONObject relogin = new JSONObject();
+			relogin.put("command", "LOGIN");
+			relogin.put("username", client.getTempUsername());
+			relogin.put("secret", client.getTempSecret());
+			client.sendActivityObject(relogin);
+			
 		} catch (Exception e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 
 	}

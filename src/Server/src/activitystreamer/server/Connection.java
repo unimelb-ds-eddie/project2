@@ -10,6 +10,7 @@ import java.net.Socket;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.simple.JSONObject;
 
 import activitystreamer.util.Settings;
 
@@ -23,12 +24,11 @@ public class Connection extends Thread {
 	private Socket socket;
 	private boolean term = false;
 	// added variable(s)
-	private boolean serverAuthenticated = false; 
-	private boolean loggedInClient = false; 
+	private boolean serverAuthenticated = false;
+	private boolean loggedInClient = false;
 	private String clientUserName;
 	private String clientSecret;
 	private boolean centralisedServer = false;
-	
 
 	Connection(Socket socket) throws IOException {
 		in = new DataInputStream(socket.getInputStream());
@@ -74,7 +74,7 @@ public class Connection extends Thread {
 			}
 			log.debug("connection closed to " + Settings.socketAddress(socket));
 			// closing the right connection in Control
-			if(this.isCentralisedServer()) {
+			if (this.isCentralisedServer()) {
 				Control.getInstance().centralisedServerConnectionClosed(this);
 			} else {
 				Control.getInstance().connectionClosed(this);
@@ -83,11 +83,19 @@ public class Connection extends Thread {
 		} catch (IOException e) {
 			log.error("connection " + Settings.socketAddress(socket) + " closed with exception: " + e);
 			// closing the right connection in Control
-			if(this.isCentralisedServer()) {
+			if (this.isCentralisedServer()) {
 				Control.getInstance().centralisedServerConnectionClosed(this);
+				System.out.println("central server crashed");
 			} else {
 				Control.getInstance().connectionClosed(this);
+				System.out.println("one client crashed");
+				JSONObject deload = new JSONObject();
+				deload.put("command", "LOGOUT");
+				Control.getInstance().process(this, deload.toJSONString());
+
+//				Control.getInstance().forwardServerMessage(this, deload);
 			}
+
 		}
 		open = false;
 	}
@@ -137,7 +145,7 @@ public class Connection extends Thread {
 	public int getLoad() {
 		return Control.connections.size();
 	}
-	
+
 	public boolean isCentralisedServer() {
 		return centralisedServer;
 	}

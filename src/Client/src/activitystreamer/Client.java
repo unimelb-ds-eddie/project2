@@ -46,12 +46,14 @@ public class Client {
 
 		if (cmd.hasOption("rh")) {
 			Settings.setRemoteHostname(cmd.getOptionValue("rh"));
+			Settings.setRemoteBackupHostname(cmd.getOptionValue("rh"));
 		}
 
 		if (cmd.hasOption("rp")) {
 			try {
 				int port = Integer.parseInt(cmd.getOptionValue("rp"));
 				Settings.setRemotePort(port);
+				Settings.setRemoteBackupPort(port);
 			} catch (NumberFormatException e) {
 				log.error("-rp requires a port number, parsed: " + cmd.getOptionValue("rp"));
 				help(options);

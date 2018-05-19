@@ -255,7 +255,6 @@ public class Control extends Thread {
 	public synchronized Connection outgoingConnection(Socket s) throws IOException {
 		log.debug("outgoing connection: " + Settings.socketAddress(s));
 		centralisedServerConnection = new Connection(s);
-		
 		connections.add(centralisedServerConnection);
 		return centralisedServerConnection;
 	}
@@ -346,7 +345,7 @@ public class Control extends Thread {
 		}
 	}
 
-	private void forwardServerMessage(Connection origin, JSONObject serverMessage) {
+	public void forwardServerMessage(Connection origin, JSONObject serverMessage) {
 		for (Connection c : connections) {
 			if (!c.equals(origin) && c.isServerAuthenticated()) {
 				c.writeMsg(serverMessage.toJSONString());
