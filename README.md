@@ -57,9 +57,10 @@
 12. BACKUP_DECREASE_LOAD - after a client logouts and the server load is updated in the main centralized server, the server load is also updated in the backup server
 
 ### TODO
-- Client CMD Line (Edward)
+- Client CMD Line (Edward - Done)
 - Invalid Message (YJ - Done, Eddie - Done)
-- Message Communication (Rahmat)
+- Message Communication (Eddie)
+  - required to authenticate client, preliminary design is to login at centralised server. successful login clients will be provided a server secret for regular server authentication
 - Update of server load (Eddie - Done)
 - Synchronisation of new client update to backup (YJ - done)
 - Synchronisation of when client leaves and update to backup (YJ - in progress (due to reg. server not fwding DE_LOAD to centralized))
@@ -74,5 +75,8 @@
   - when centralised server is closed, attempt to connect to main centralised server first, if not automatically connect to backup remote hostname and remote port
   - at server end -> send authentication to backup (as per normal) and backup will authenticate server
   - as for the memory, if server id is already found in memory, backup server will not update anything (as compared to authenticating new servers)
+- Centralised server network failure model (Eddie)
+  - use case: both servers did not crash, connection failed and closed
+  - backup will initiate connection upon closure
 - Fix user store (Eddie - Done)
 - check if server is authenticated before each synchronise commands (Eddie - Done)
