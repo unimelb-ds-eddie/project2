@@ -62,10 +62,27 @@
 - Message Communication (Rahmat)
 - Update of server load (Eddie - Done)
 - Synchronisation of new client update to backup (YJ - done)
-- Synchronisation of when client leaves and update to backup (YJ - in progress (due to reg. server not fwding DE_LOAD to centralized))
+  - ** how I did it **
+  - The centralized server keeps track of the load of every regular server connected to it (in the form of a hash table called serverClientLoad).
+  - When a client is redirected to a regular server after a successful login, the serverClientLoad hash table is updated.
+  - Every time the serverClientLoad hash table is updated on the centralized server, the transaction is replicated on the backup server so that
+  - the contents of its own serverClientLoad hash table will be identical to that of the centralized server's.
+- Synchronisation of when client leaves and update to backup (YJ - done)
+  - ** how I did it **
+  - Same principle as syncing a new client, except that when a client logouts, the serverClientLoad hash table in the centralized server is updated.
+  - For every update to the serverClientLoad hash table on the centralized server, the transaction is replicated on the backup server
+  - so that the contents of its own serverClientLoad hash table will be identical to that of the centralized server's.
 - Synchronisation of new server update to backup (Eddie - Done)
 - Synchronisation of when serevr leaves and update to backup (Eddie - Done)
 - Synchronisation of registration update to backup (YJ - done)
+  - ** how I did it **
+  - Concept: A client has to connect to the centralized server (which in turn is connected to a backup server) in order to:
+      - register its details first and/or
+      - login before being redirected to a normal server.
+  - When a client registers on the centralized server, the details are written to the centralized server's database (stored locally).
+  - After a successful registration, the same transaction will be replicated on the backup server so that the backup server's database
+  - mirrors that of the centralized server's database.
+
 - Redirect client to main server when server fails (Edward)
 - Failure model of centralised server (Eddie - Done)
   - **how i did it**
