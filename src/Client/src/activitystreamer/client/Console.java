@@ -17,21 +17,7 @@ public class Console extends Thread {
 	}
 
 	public void run() {
-		while (true) {
-			System.out.println("CMD starts");
-			sc = new Scanner(System.in);
-			String msg = sc.nextLine().trim().replaceAll("\r", "").replaceAll("\n", "").replaceAll("\t", "");
-			JSONObject obj;
-			try {
-				obj = (JSONObject) parser.parse(msg);
-				ClientSkeleton.getInstance().sendActivityObject(obj);
-				sc.close();
-			} catch (ParseException e1) {
-				System.out.println("invalid JSON object entered into input text field, data not sent");
-			}
-			
-
-		}
+		
 	}
 
 	public void sendMessage() {

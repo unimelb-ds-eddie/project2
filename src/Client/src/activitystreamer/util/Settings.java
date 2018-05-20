@@ -20,6 +20,10 @@ public class Settings {
 	// added global variable(s)
 	private static String serverId = nextSecret();
 
+	
+	private static String remoteBackupHostname= "localhost";
+	private static int remoteBackupPort = 3780;
+	
 	public static int getLocalPort() {
 		return localPort;
 	}
@@ -106,4 +110,21 @@ public class Settings {
 		return new BigInteger(130, random).toString(32);
 	}
 
+	public static String getRemoteBackupHostname() {
+		return remoteBackupHostname;
+	}
+
+	public static void setRemoteBackupHostname(String remoteBackupHostname) {
+		Settings.remoteBackupHostname = remoteBackupHostname;
+	}
+
+	public static int getRemoteBackupPort() {
+		return remoteBackupPort;
+	}
+
+	public static void setRemoteBackupPort(int remoteBackupPort) {
+		Settings.remoteBackupPort = remoteBackupPort;
+	}
+
+	
 }

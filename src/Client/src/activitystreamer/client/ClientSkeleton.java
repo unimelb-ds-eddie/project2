@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Scanner;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,12 +40,10 @@ public class ClientSkeleton extends Thread {
 
 	public ClientSkeleton() {
 		start();
-		textFrame = new TextFrame();
+		textFrame = new TextFrame(this);
 	
 //		cmd = new Console();
 //		cmd.run();
-
-
 	}
 	
 //	public void sendMsgViaConsole(String msg) {
@@ -69,9 +68,26 @@ public class ClientSkeleton extends Thread {
 			// Output and Input Stream
 			reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
 			writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
-			ml = new MessageListener(reader);
-			ml.start();        
-			new Console().start();
+			ml = new MessageListener(reader,this);
+			ml.start(); 
+			
+			
+			Scanner scanner = new Scanner(System.in);
+	
+			//While the user input differs from "exit"
+			while (true) {				
+				// Send the input string to the server by writing to the socket output stream
+				String inputStr = scanner.nextLine();
+				writer.write(inputStr);
+				writer.flush();
+				if((inputStr).equals("{\"command\" : \"LOGOUT\"}"))
+					break;
+			}
+			JSONObject logout = new JSONObject();
+			logout.put("command", "LOGOUT");
+			sendActivityObject(logout);
+			
+			
 
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
@@ -224,7 +240,11 @@ public class ClientSkeleton extends Thread {
 				break;
 			case "LOGOUT":
 				// close connection
+				System.out.println();
+				reader.close();
 				socket.close();
+				System.exit(0);
+				
 				break;
 			default:
 				// nothing
@@ -250,6 +270,7 @@ public class ClientSkeleton extends Thread {
 			writer.write("{\"command\" : \"LOGOUT\"}");
 			writer.flush();
 			socket.close();
+			System.exit(0);
 		} catch (IOException e) {
 			JSONObject logoutMsg = new JSONObject();
 			logoutMsg.put("info", "you are not connected to server, please exit");
@@ -283,7 +304,9 @@ public class ClientSkeleton extends Thread {
 	public void executeRedirect() {
 		// close existing connection
 		try {
+			reader.close();
 			socket.close();
+			
 		} catch (IOException e) {
 			log.error(e);
 		}
@@ -301,4 +324,22 @@ public class ClientSkeleton extends Thread {
 	public Socket getSocket() {
 		return socket;
 	}
+
+	public static String getTempUsername() {
+		return tempUsername;
+	}
+
+	public static void setTempUsername(String tempUsername) {
+		ClientSkeleton.tempUsername = tempUsername;
+	}
+
+	public static String getTempSecret() {
+		return tempSecret;
+	}
+
+	public static void setTempSecret(String tempSecret) {
+		ClientSkeleton.tempSecret = tempSecret;
+	}
+	
+	
 }

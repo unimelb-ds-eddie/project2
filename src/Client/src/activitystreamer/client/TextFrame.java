@@ -34,7 +34,11 @@ public class TextFrame extends JFrame implements ActionListener {
 	private JButton disconnectButton;
 	private JSONParser parser = new JSONParser();
 
-	public TextFrame() {
+	ClientSkeleton client;
+	public TextFrame(ClientSkeleton client) {
+		
+		this.client = client;
+		
 		setTitle("ActivityStreamer Text I/O");
 		JPanel mainPanel = new JPanel();
 		mainPanel.setLayout(new GridLayout(1, 2));
@@ -94,15 +98,16 @@ public class TextFrame extends JFrame implements ActionListener {
 			JSONObject obj;
 			try {
 				obj = (JSONObject) parser.parse(msg);
-				ClientSkeleton.getInstance().sendActivityObject(obj);
+				client.sendActivityObject(obj);
 
 			} catch (ParseException e1) {
 				log.error("invalid JSON object entered into input text field, data not sent");
 			}
 
 		} else if (e.getSource() == disconnectButton) {
-			ClientSkeleton.getInstance().disconnect();
-			System.exit(0);
+			JSONObject logout = new JSONObject();
+			logout.put("command", "LOGOUT");
+			client.sendActivityObject(logout);
 		}
 	}
 }
