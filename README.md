@@ -55,6 +55,8 @@
   "leastId": <server id>,
   "leastLoad": <load count>}
 12. BACKUP_DECREASE_LOAD - after a client logouts and the server load is updated in the main centralized server, the server load is also updated in the backup server
+  {"command":"BACKUP_DECREASE_LOAD",
+  "id": <server id>}
 
 ### TODO
 - Client CMD Line (Edward - Done)
