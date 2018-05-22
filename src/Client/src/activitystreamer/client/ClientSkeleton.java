@@ -27,7 +27,7 @@ public class ClientSkeleton extends Thread {
 	// added global variables
 	private static String tempUsername;
 	private static String tempSecret;
-
+	Console cs;
 	
 	
 	
@@ -70,24 +70,23 @@ public class ClientSkeleton extends Thread {
 			writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
 			ml = new MessageListener(reader,this);
 			ml.start(); 
+			cs = new Console();
+			cs.start();
 			
-			
-			Scanner scanner = new Scanner(System.in);
-	
-			//While the user input differs from "exit"
-			while (true) {				
-				// Send the input string to the server by writing to the socket output stream
-				String inputStr = scanner.nextLine();
-				writer.write(inputStr);
-				writer.flush();
-				if((inputStr).equals("{\"command\" : \"LOGOUT\"}"))
-					break;
-			}
-			JSONObject logout = new JSONObject();
-			logout.put("command", "LOGOUT");
-			sendActivityObject(logout);
-			
-			
+//			Scanner scanner = new Scanner(System.in);
+//			String inputStr = null;
+//			//While the user input differs from "exit"
+//			while (!(inputStr = scanner.nextLine()).equals("exit")) {				
+//				// Send the input string to the server by writing to the socket output stream
+//				writer.write(inputStr+"\n");
+//				writer.flush();
+//				System.out.println(inputStr);
+//				if((inputStr).equals("{\"command\" : \"LOGOUT\"}"))
+//					break;
+//			}
+//			JSONObject logout = new JSONObject();
+//			logout.put("command", "LOGOUT");
+//			sendActivityObject(logout);	
 
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
@@ -198,9 +197,8 @@ public class ClientSkeleton extends Thread {
 					break;
 
 				case "ACTIVITY_BROADCAST":
-					if (message.containsKey("expel")) {
-						return true;
-					}
+					System.out.println("I received:"+message);
+					
 					return false;
 
 				// REGISTER_SUCCESS ends
@@ -227,7 +225,8 @@ public class ClientSkeleton extends Thread {
 	@SuppressWarnings("unchecked")
 	public void sendActivityObject(JSONObject activityObj) {
 		try {
-			writer.write(activityObj.toJSONString() + "\n");
+
+			writer.write(activityObj.toJSONString());
 			writer.flush();
 			// get command to process requests
 			// ADD: how to handle exception when it should be returned invalid message from
@@ -314,11 +313,11 @@ public class ClientSkeleton extends Thread {
 		run();
 		// ADD: then initiate login
 		// Marshaling login parameters into JSON object
-//		JSONObject loginMessage = new JSONObject();
-//		loginMessage.put("command", "LOGIN");
-//		loginMessage.put("username", Settings.getUsername());
-//		loginMessage.put("secret", Settings.getSecret());
-//		sendActivityObject(loginMessage);
+		JSONObject loginMessage = new JSONObject();
+		loginMessage.put("command", "LOGIN");
+		loginMessage.put("username", Settings.getUsername());
+		loginMessage.put("secret", Settings.getSecret());
+		sendActivityObject(loginMessage);
 	}
 
 	public Socket getSocket() {

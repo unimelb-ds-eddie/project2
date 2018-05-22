@@ -494,7 +494,8 @@ public class Control extends Thread {
 				// ***** ACTIVITY_BROADCAST (START) ******
 
 				case "ACTIVITY_BROADCAST":
-					System.out.println("ACTIVITY_BROADCAST recieved.");
+					System.out.println("I received ACTIVITY_BROADCAST:"+message);
+					forwardActivityBroadcast(message,con);
 					break;
 
 				// ***** ACTIVITY_BROADCAST (END) ******
@@ -1240,15 +1241,13 @@ public class Control extends Thread {
 	}
 
 	// Activity
-
+	// do not send back to server that sent the message
 	@SuppressWarnings("unchecked")
-	private void sendActivityBroadcast(JSONObject activity) {
-		JSONObject activityBroadcastMessage = new JSONObject();
-		activityBroadcastMessage.put("command", "ACTIVITY_BROADCAST");
-		activityBroadcastMessage.put("activity", activity);
+	private void forwardActivityBroadcast(JSONObject activity,Connection con) {
 		// write message to all connections regardless of client or server
 		for (Connection c : connections) {
-			c.writeMsg(activityBroadcastMessage.toJSONString());
+			if(!c.equals(con))
+			c.writeMsg(activity.toJSONString());
 		}
 	}
 	
@@ -1280,4 +1279,6 @@ public class Control extends Thread {
 			
 			return userstore;
 		}
+		
+		
 }

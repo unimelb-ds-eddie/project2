@@ -82,6 +82,7 @@ public class Connection extends Thread {
 				Control.getInstance().connectionClosed(this);
 			}
 			in.close();
+			
 		} catch (IOException e) {
 			log.error("connection "+Settings.socketAddress(socket)+" closed with exception: "+e);
 			// check if it's a backup centralised server; remove from the right connection array

@@ -174,8 +174,58 @@ public class Control extends Thread {
 				// ACTIVITY_MESSAGE starts
 
 				case "ACTIVITY_MESSAGE":
-					System.out.println("received activity message");
-					System.out.println(msg);
+					if(con.isClient()) {
+						// check if activity message contains username
+						boolean hasUsername = message.containsKey("username");
+						boolean hasSecret = message.containsKey("secret");
+						boolean hasActivity = message.containsKey("activity");
+
+						if(hasUsername) {
+							String activityMessageUsername = (String) message.get("username");
+
+							if(activityMessageUsername.equals("anonymous")) {
+								if(hasActivity) {
+									// process broadcast
+									JSONObject activityMessageActivity = (JSONObject) message.get("activity");
+									activityMessageActivity.put("authenticated_user", activityMessageUsername);
+									sendActivityBroadcast(activityMessageActivity);
+								} else {
+									// respond with invalid message if message did not contain a activity and close the connection
+									sendInvalidMessage(con, "the received message did not contain an activity object");
+									return true;
+								}
+							} else if(!activityMessageUsername.equals("anonymous") && hasSecret) {
+								String activityMessageSecret = (String) message.get("secret");
+								if(activityMessageUsername.equals(con.getClientUserName()) && activityMessageSecret.equals(con.getClientSecret())) {
+									if(hasActivity) {
+										// process broadcast
+										JSONObject activityMessageActivity = (JSONObject) message.get("activity");
+										activityMessageActivity.put("authenticated_user", activityMessageUsername);
+										sendActivityBroadcast(activityMessageActivity);
+									} else {
+										// respond with invalid message if message did not contain a activity and close the connection
+										sendInvalidMessage(con, "the received message did not contain an activity object");
+										return true;
+									}
+								} else {
+									// send authentication fail if username or secret did not match
+									sendAuthenticationFail(con, "username and secret do not match the logged in the user");
+									return true;
+								}
+							} else {
+								// respond with invalid message if message did not contain a secret and close the connection
+								sendInvalidMessage(con, "the received message has a non-anonymous username but did not contain a secret");
+								return true;
+							}
+						} else {
+							// respond with invalid message if message did not contain a username and close the connection
+							sendInvalidMessage(con, "the received message did not contain a username");
+							return true;
+						}
+					} else {
+						sendAuthenticationFail(con, "client not login");
+					}
+		
 					break;
 
 				// ACTIVITY_MESSAGE ends
@@ -183,16 +233,27 @@ public class Control extends Thread {
 				// ACTIVITY_BROADCAST starts
 
 				case "ACTIVITY_BROADCAST":
-					System.out.println("ACTIVITY_BROADCAST");
+					System.out.println("i received from central server:"+message );
+					if(con.isServerAuthenticated()) {
+						forwardActivityBroadcastToClients(message);				
+					}else {
+						sendInvalidMessage(con, "Sorry, only server can send ACTIVITY_BROADCAST");
+						return true;
+					}
 					break;
 
 				// ACTIVITY_BROADCAST ends
 					
 				//testing
 				case "LOGIN":
-					System.out.println(msg);
+					System.out.println(msg);				
+					con.setClientUserName(message.get("username").toString());
+					con.setClientSecret(message.get("secret").toString());
+					con.setLoggedInClient();
+					System.out.println("This server is serving for:");
+					System.out.println(con.getClientUserName());
+					System.out.println(con.getClientSecret());
 					return false;
-					
 				default:
 					// if command is not valid send invalid message and close connection
 					sendInvalidMessage(con, "the received message did not contain a valid command");
@@ -334,6 +395,14 @@ public class Control extends Thread {
 		authenticate.put("id", Settings.getServerId());
 		authenticate.put("hostname", Settings.getLocalHostname());
 		authenticate.put("port", Settings.getLocalPort());
+		
+		// when facing invalid msg, deload one
+		JSONObject deload = new JSONObject();
+		deload.put("command", "DE_LOAD");
+		deload.put("id",Settings.getServerId());
+		System.out.println(Settings.getServerId());
+		forwardServerMessage(c, deload);
+		
 		// write message
 		if (c.writeMsg(authenticate.toJSONString())) {
 			log.debug("[Port-" + Settings.getLocalPort() + "]: AUTHENTICATE sent to Port-" + Settings.getRemotePort());
@@ -375,6 +444,29 @@ public class Control extends Thread {
 	// Activity
 
 	@SuppressWarnings("unchecked")
+	private boolean sendAuthenticationFail(Connection c, String info) {
+		JSONObject failureMessage = new JSONObject();
+		failureMessage.put("command", "AUTHENTICATION_FAIL");
+		failureMessage.put("info", info);
+		
+		// when facing fail, deload one
+		JSONObject deload = new JSONObject();
+		deload.put("command", "DE_LOAD");
+		deload.put("id",Settings.getServerId());
+		System.out.println(Settings.getServerId());
+		forwardServerMessage(c, deload);
+		
+		// write message
+		if (c.writeMsg(failureMessage.toJSONString())) {
+			log.debug("[Port-" + Settings.getLocalPort() + "]: AUTHENTICATE_FAIL sent to " + c.getSocket().getRemoteSocketAddress());
+			return true;
+		} else {
+			log.debug("[Port-" + Settings.getLocalPort() + "]: AUTHENTICATE_FAIL sending to " + c.getSocket().getRemoteSocketAddress() + " failed");
+			return false;
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
 	private void sendActivityBroadcast(JSONObject activity) {
 		JSONObject activityBroadcastMessage = new JSONObject();
 		activityBroadcastMessage.put("command", "ACTIVITY_BROADCAST");
@@ -385,4 +477,13 @@ public class Control extends Thread {
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
+	private void forwardActivityBroadcastToClients(JSONObject activity) {
+
+		// write message to all connections regardless of client or server
+		for (Connection c : connections) {
+			if(c.isClient())
+			c.writeMsg(activity.toJSONString());
+		}
+	}
 }
