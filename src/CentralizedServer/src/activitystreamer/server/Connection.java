@@ -30,6 +30,7 @@ public class Connection extends Thread {
 	private String clientUserName; 
 	private String clientSecret;
 	private boolean backupCentralisedServer = false;
+	private boolean mainCentralisedServer = false;
 	private String serverId;
 
 	Connection(Socket socket) throws IOException{
@@ -78,6 +79,8 @@ public class Connection extends Thread {
 			// check if it's a backup centralised server; remove from the right connection array
 			if(backupCentralisedServer) {
 				Control.getInstance().backupServerConnectionClosed(this);
+			} else if (mainCentralisedServer) {
+				Control.getInstance().mainServerConnectionClosed(this);
 			} else {
 				Control.getInstance().connectionClosed(this);
 			}
@@ -88,6 +91,8 @@ public class Connection extends Thread {
 			// check if it's a backup centralised server; remove from the right connection array
 			if(backupCentralisedServer) {
 				Control.getInstance().backupServerConnectionClosed(this);
+			} else if (mainCentralisedServer) {
+				Control.getInstance().mainServerConnectionClosed(this);
 			} else {
 				Control.getInstance().connectionClosed(this);
 			}
@@ -151,5 +156,13 @@ public class Connection extends Thread {
 
 	public String getServerId() {
 		return serverId;
+	}
+	
+	public boolean isMainCentralisedServer() {
+		return mainCentralisedServer;
+	}
+
+	public void setMainCentralisedServer() {
+		this.mainCentralisedServer = true;
 	}
 }

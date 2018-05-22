@@ -29,6 +29,7 @@ public class Control extends Thread {
 	private static Listener listener;
 	// modified / added attributes
 	private static ArrayList<Connection> backupServerConnections;
+	private static Connection mainServerConnection;
 	private static Hashtable<String, Integer> serverClientLoad;
 	private static Hashtable<String, JSONObject> serverAddresses;
 	// [DELETE] for testing
@@ -93,8 +94,8 @@ public class Control extends Thread {
 				// initiate connection with centralised host server (outgoing)
 				// authenticate with centralised host server with secret
 				// the ONLY outgoing connection expected for a centralised server is to connect to the main centralised server
-				sendAuthenticationBackup(
-						outgoingConnection(new Socket(Settings.getRemoteHostname(), Settings.getRemotePort())));
+				mainServerConnection = outgoingConnection(new Socket(Settings.getRemoteHostname(), Settings.getRemotePort()));
+				sendAuthenticationBackup(mainServerConnection);
 
 			} catch (IOException e) {
 				log.error("failed to make connection to " + Settings.getRemoteHostname() + ":"
@@ -187,9 +188,9 @@ public class Control extends Thread {
 					if (message.containsKey("info")) {
 						// retrieve authentication success info, print it, and set connection as authenticated
 						con.setServerAuthenticated();
-						con.setBackupCentralisedServer();
-						String backupAuthenticationSuccessInfo = (String) message.get("info");
-						log.info(backupAuthenticationSuccessInfo);
+						con.setMainCentralisedServer();
+						String mainAuthenticationSuccessInfo = (String) message.get("info");
+						log.info(mainAuthenticationSuccessInfo);
 					} else {
 						// send invalid message if info is not found and close connection
 						sendInvalidMessage(con, "the received message did not contain a info");
@@ -307,8 +308,8 @@ public class Control extends Thread {
 					if (con.isServerAuthenticated() == false) {
 						sendInvalidMessage(con, "server is not authenticated");
 						return true;
-					} else if (con.isBackupCentralisedServer() == false) {
-						sendInvalidMessage(con, "server is not a backup centralised server");
+					} else if (con.isMainCentralisedServer() == false) {
+						sendInvalidMessage(con, "server is not the main centralised server");
 						return true;
 					} else {
 						boolean hasLoad = message.containsKey("load");
@@ -634,6 +635,24 @@ public class Control extends Thread {
 		if (!term)
 			backupServerConnections.remove(con);
 	}
+	
+	public synchronized void mainServerConnectionClosed(Connection con) {
+		if (!term) {
+			mainServerConnection = null;
+			// attempt to reconnect
+			try {
+				mainServerConnection = outgoingConnection(new Socket(Settings.getRemoteHostname(), Settings.getRemotePort()));
+				sendAuthenticationBackup(mainServerConnection);
+
+			} catch (IOException e) {
+				log.error("failed to make connection to " + Settings.getRemoteHostname() + ":"
+						+ Settings.getRemotePort() + " :" + e);
+				log.error("main centralised server has crashed, taking over as main centralised server");
+			}
+			
+		}
+			
+	}
 
 	/*
 	 * A new incoming connection has been established, and a reference is returned
@@ -662,7 +681,7 @@ public class Control extends Thread {
 		log.debug("outgoing connection: " + Settings.socketAddress(s));
 		Connection c = new Connection(s);
 		// add to connection first, wait for authenticate success
-		backupServerConnections.add(c);
+//		backupServerConnections.add(c);
 		return c;
 	}
 
