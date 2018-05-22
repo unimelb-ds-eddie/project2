@@ -61,7 +61,7 @@
 ### TODO
 - Client CMD Line (Edward)
 - Invalid Message (YJ - Done, Eddie - Done)
-- Message Communication (Eddie)
+- Message Communication (Edward)
   - required to authenticate client, preliminary design is to login at centralised server. successful login clients will be provided a server secret for regular server authentication
 - Update of server load (Eddie - Done)
 - Synchronisation of new client update to backup (YJ - done)
@@ -86,7 +86,7 @@
   - After a successful registration, the same transaction will be replicated on the backup server so that the backup server's database
   - mirrors that of the centralized server's database.
 
-- Redirect client to main server when server fails (Edward)
+- Redirect client to main server when server fails (Edward - Done)
 - Failure model of centralised server (Eddie - Done)
   - **how i did it**
   - concept: when main centralised server fails, all clients connected to regular servers will not be affected; redirect all servers to backup
