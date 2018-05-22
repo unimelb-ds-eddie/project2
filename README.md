@@ -59,7 +59,7 @@
   "id": <server id>}
 
 ### TODO
-- Client CMD Line (Edward - Done)
+- Client CMD Line (Edward)
 - Invalid Message (YJ - Done, Eddie - Done)
 - Message Communication (Eddie)
   - required to authenticate client, preliminary design is to login at centralised server. successful login clients will be provided a server secret for regular server authentication
