@@ -94,7 +94,7 @@
   - when centralised server is closed, attempt to connect to main centralised server first, if not automatically connect to backup remote hostname and remote port
   - at server end -> send authentication to backup (as per normal) and backup will authenticate server
   - as for the memory, if server id is already found in memory, backup server will not update anything (as compared to authenticating new servers)
-- Centralised server network failure model (Eddie)
+- Centralised server network failure model (Eddie - Done)
   - use case: both servers did not crash, connection failed and closed
   - backup will initiate connection upon closure
 - Fix user store (Eddie - Done)
