@@ -867,9 +867,7 @@ public class Control extends Thread {
 		synchroniseUserStoreMessage.put("command", "SYNCHRONISE");
 		synchroniseUserStoreMessage.put("load", serverClientLoad);
 		synchroniseUserStoreMessage.put("address", serverAddresses);
-//		synchroniseUserStoreMessage.put("user", retrieveUserLocalStorage());
-		// [DELETE] for testing
-		synchroniseUserStoreMessage.put("user", testretrieveUserLocalStorage());
+		synchroniseUserStoreMessage.put("user", retrieveUserLocalStorage());
 		// write message to backup server as JSON object
 		if (c.writeMsg(synchroniseUserStoreMessage.toJSONString())) {
 			log.debug("[Port-" + Settings.getLocalPort() + "]: SYNCHRONISE sent to "
