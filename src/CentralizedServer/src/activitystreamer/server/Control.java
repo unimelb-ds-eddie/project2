@@ -32,9 +32,6 @@ public class Control extends Thread {
 	private static Connection mainServerConnection;
 	private static Hashtable<String, Integer> serverClientLoad;
 	private static Hashtable<String, JSONObject> serverAddresses;
-	// [DELETE] for testing
-//	private static Hashtable<String, Integer> testserverClientLoad;
-	private static Hashtable<String, JSONObject> testserverAddresses;
 	
 	// [NOTE] - things to take note
 	// [ADD] - methods to be written
@@ -1266,36 +1263,5 @@ public class Control extends Thread {
 			if(!c.equals(con))
 			c.writeMsg(activity.toJSONString());
 		}
-	}
-	
-	// [DELETE] for testing
-		private ArrayList<JSONObject> testretrieveUserLocalStorage() {
-			ArrayList<JSONObject> userstore = new ArrayList<JSONObject>();
-			
-			// fake username and secret
-			JSONObject newUser1 = new JSONObject();
-			newUser1.put("username", "eddie");
-			newUser1.put("secret", "xyz");
-			
-			JSONObject newUser2 = new JSONObject();
-			newUser2.put("username", "edward");
-			newUser2.put("secret", "abc");
-			
-			JSONObject newUser3 = new JSONObject();
-			newUser3.put("username", "rahmat");
-			newUser3.put("secret", "123");
-			
-			JSONObject newUser4 = new JSONObject();
-			newUser4.put("username", "yj");
-			newUser4.put("secret", "890");
-			
-			userstore.add(newUser1);
-			userstore.add(newUser2);
-			userstore.add(newUser3);
-			userstore.add(newUser4);
-			
-			return userstore;
-		}
-		
-		
+	}	
 }
