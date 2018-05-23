@@ -535,7 +535,7 @@ public class Control extends Thread {
 							// send register fail
 							System.out.println("Username exists, failing to register!");
 							sendRegisterFailed(con, username);
-
+							
 							// close connection
 							return true;
 						}

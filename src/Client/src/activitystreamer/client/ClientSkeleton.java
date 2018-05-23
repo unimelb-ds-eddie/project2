@@ -27,7 +27,7 @@ public class ClientSkeleton extends Thread {
 	// added global variables
 	private static String tempUsername;
 	private static String tempSecret;
-	Console cs;
+
 	
 	
 	
@@ -70,8 +70,6 @@ public class ClientSkeleton extends Thread {
 			writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
 			ml = new MessageListener(reader,this);
 			ml.start(); 
-			cs = new Console();
-			cs.start();
 			
 //			Scanner scanner = new Scanner(System.in);
 //			String inputStr = null;
@@ -226,8 +224,6 @@ public class ClientSkeleton extends Thread {
 	public void sendActivityObject(JSONObject activityObj) {
 		try {
 
-			writer.write(activityObj.toJSONString());
-			writer.flush();
 			// get command to process requests
 			// ADD: how to handle exception when it should be returned invalid message from
 			// server
@@ -239,16 +235,20 @@ public class ClientSkeleton extends Thread {
 				break;
 			case "LOGOUT":
 				// close connection
-				System.out.println();
+				if(!socket.isClosed()) {
+					writer.write(activityObj.toJSONString()+"\n");
+					writer.flush();
+				}
 				reader.close();
 				socket.close();
 				System.exit(0);
 				
 				break;
 			default:
-				// nothing
 				break;
 			}
+			writer.write(activityObj.toJSONString()+"\n");
+			writer.flush();
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

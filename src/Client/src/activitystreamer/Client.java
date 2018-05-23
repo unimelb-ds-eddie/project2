@@ -10,6 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import activitystreamer.client.ClientSkeleton;
+import activitystreamer.client.Console;
 import activitystreamer.util.Settings;
 
 public class Client {
@@ -25,7 +26,7 @@ public class Client {
 	}
 
 	public static void main(String[] args) {
-
+		Console cs;
 		log.info("reading command line options");
 
 		Options options = new Options();
@@ -71,6 +72,7 @@ public class Client {
 		log.info("starting client");
 
 		ClientSkeleton c = ClientSkeleton.getInstance();
+		cs= new Console();
 
 	}
 

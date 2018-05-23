@@ -13,7 +13,7 @@ public class Console extends Thread {
 	public Console() {
 
 		parser = new JSONParser();
-
+		start();
 	}
 
 	public void run() {
