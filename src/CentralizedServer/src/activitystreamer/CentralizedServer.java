@@ -12,6 +12,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import activitystreamer.server.Console;
 import activitystreamer.server.Control;
 import activitystreamer.util.Settings;
 
@@ -105,7 +106,7 @@ public class CentralizedServer {
 		log.info("starting server");
 
 		final Control c = Control.getInstance();
-
+		Console cs = new Console(c);
 		// the following shutdown hook doesn't really work, it doesn't give us enough
 		// time to
 		// cleanup all of our connections before the jvm is terminated.

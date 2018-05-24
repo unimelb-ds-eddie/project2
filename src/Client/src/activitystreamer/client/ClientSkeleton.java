@@ -241,7 +241,7 @@ public class ClientSkeleton extends Thread {
 				}
 				reader.close();
 				socket.close();
-				System.exit(0);
+				//System.exit(0);
 				
 				break;
 			default:

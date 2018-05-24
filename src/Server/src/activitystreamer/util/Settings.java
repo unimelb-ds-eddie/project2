@@ -20,8 +20,8 @@ public class Settings {
 	// added global variable(s)
 	private static String serverId = nextSecret();
 	
-	private static String backupRemoteHostname = "localhost"; // hardcoded
-	private static int backupRemotePort = 3790; // hardcoded
+//	private static String backupRemoteHostname = "localhost"; // hardcoded
+//	private static int backupRemotePort = 3790; // hardcoded
 
 	public static int getLocalPort() {
 		return localPort;
@@ -111,12 +111,22 @@ public class Settings {
 	
 	// added methods
 	
-	public static String getBackupRemoteHostname() {
-		return backupRemoteHostname;
-	}
+//	public static String getBackupRemoteHostname() {
+//		return backupRemoteHostname;
+//	}
+//	
+//	public static int getBackupRemotePort() {
+//		return backupRemotePort;
+//	}
+//
+//	public static void setBackupRemoteHostname(String backupRemoteHostname) {
+//		Settings.backupRemoteHostname = backupRemoteHostname;
+//	}
+//
+//	public static void setBackupRemotePort(int backupRemotePort) {
+//		Settings.backupRemotePort = backupRemotePort;
+//	}
 	
-	public static int getBackupRemotePort() {
-		return backupRemotePort;
-	}
+	
 
 }

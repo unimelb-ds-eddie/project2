@@ -37,6 +37,8 @@ public class Server {
 		options.addOption("lh", true, "local hostname");
 		options.addOption("a", true, "activity interval in milliseconds");
 		options.addOption("s", true, "secret for the server to use");
+		options.addOption("brp", true, "backup remote port number");
+		options.addOption("brh", true, "backup remote hostname");
 
 		// build the parser
 		CommandLineParser parser = new DefaultParser();
@@ -101,6 +103,16 @@ public class Server {
 		if (cmd.hasOption("s") && (!cmd.hasOption("rp") && !cmd.hasOption("rh"))) {
 			log.info("The secret of this server is:" + Settings.getSecret());
 		}
+
+//		if (cmd.hasOption("brp")) {
+//			Settings.setBackupRemotePort(Integer.parseInt(cmd.getOptionValue("brp")));
+//			log.info("The backup remote port number is:" + Settings.getBackupRemotePort());
+//		}
+//
+//		if (cmd.hasOption("brh")) {
+//			Settings.setBackupRemoteHostname(cmd.getOptionValue("brh"));
+//			log.info("The backup remote hostname is:" + Settings.getBackupRemoteHostname());
+//		}
 
 		log.info("starting server");
 

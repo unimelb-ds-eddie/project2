@@ -39,6 +39,7 @@ public class Connection extends Thread {
 	    inreader = new BufferedReader( new InputStreamReader(in));
 	    outwriter = new PrintWriter(out, true);
 	    this.socket = socket;
+	    
 	    open = true;
 	    start();
 	}
@@ -76,7 +77,7 @@ public class Connection extends Thread {
 				term=Control.getInstance().process(this,data);
 			}
 			log.debug("connection closed to "+Settings.socketAddress(socket));
-			// check if it's a backup centralised server; remove from the right connection array
+			// check if it's a backup centralized server; remove from the right connection array
 			if(backupCentralisedServer) {
 				Control.getInstance().backupServerConnectionClosed(this);
 			} else if (mainCentralisedServer) {

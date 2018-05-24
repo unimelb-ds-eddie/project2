@@ -19,14 +19,14 @@ public class MessageListener extends Thread {
 	private BufferedReader reader;
 	ClientSkeleton client;
 
-	public MessageListener(BufferedReader reader,ClientSkeleton client) {
+	public MessageListener(BufferedReader reader, ClientSkeleton client) {
 		this.reader = reader;
 		this.client = client;
 	}
 
 	@Override
 	public void run() {
-		
+
 		try {
 			String msg = null;
 			// Read messages from the server while the end of the stream is not reached
@@ -37,25 +37,30 @@ public class MessageListener extends Thread {
 				ClientSkeleton.getInstance().getTextFrame().setOutputText(newMessage);
 				System.out.println(newMessage);
 				term = ClientSkeleton.getInstance().process(this, newMessage);
-				
+
 			}
 			SocketAddress remoteSocketAddress = ClientSkeleton.getInstance().getSocket().getRemoteSocketAddress();
 			ClientSkeleton.getInstance().getSocket().close();
 			log.info("connection closed to " + remoteSocketAddress);
 		} catch (SocketException e) {
-			log.info("connected server crashed, trying to redirect to another server.");
-			//try to connect the centralized server
-			Settings.setRemotePort(Settings.getRemoteBackupPort());
-			Settings.setRemoteHostname(Settings.getRemoteBackupHostname());
-			client.executeRedirect();
-			JSONObject relogin = new JSONObject();
-			relogin.put("command", "LOGIN");
-			relogin.put("username", client.getTempUsername());
-			relogin.put("secret", client.getTempSecret());
-			client.sendActivityObject(relogin);
-			
+			log.info("connected server crashed, you can try to connect to backup server.");
+			JSONObject errorMsg = new JSONObject();
+			errorMsg.put("info1", "the connection to the server failed, you can try to reconnect or go to backup server.");
+			errorMsg.put("info2", "info1 is not important, I just want to know that I have handled the failure model.");
+			ClientSkeleton.getInstance().getTextFrame().setOutputText(errorMsg);
+			// try to connect the centralized server
+
+			// Settings.setRemotePort(Settings.getRemoteBackupPort());
+			// Settings.setRemoteHostname(Settings.getRemoteBackupHostname());
+			// client.executeRedirect();
+			// JSONObject relogin = new JSONObject();
+			// relogin.put("command", "LOGIN");
+			// relogin.put("username", client.getTempUsername());
+			// relogin.put("secret", client.getTempSecret());
+			// client.sendActivityObject(relogin);
+
 		} catch (Exception e) {
-			//e.printStackTrace();
+			// e.printStackTrace();
 		}
 
 	}

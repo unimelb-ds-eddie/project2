@@ -82,20 +82,19 @@ public class Connection extends Thread {
 			in.close();
 		} catch (IOException e) {
 			log.error("connection " + Settings.socketAddress(socket) + " closed with exception: " + e);
-			// closing the right connection in Control
+
 			if (this.isCentralisedServer()) {
+				//handle main server exception
 				Control.getInstance().centralisedServerConnectionClosed(this);
-				System.out.println("central server crashed");
+				System.out.println("central server crashed, trying to connect backup");
 			} else {
+				//handle client exception
 				Control.getInstance().connectionClosed(this);
-				System.out.println("one client crashed");
+				System.out.println("Client id:"+clientUserName+" crashed, will advise main server to clear its cache.");
 				JSONObject deload = new JSONObject();
 				deload.put("command", "LOGOUT");
 				Control.getInstance().process(this, deload.toJSONString());
-
-//				Control.getInstance().forwardServerMessage(this, deload);
 			}
-
 		}
 		open = false;
 	}

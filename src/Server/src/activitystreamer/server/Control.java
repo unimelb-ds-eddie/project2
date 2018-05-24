@@ -29,8 +29,9 @@ public class Control extends Thread {
 	private static Listener listener;
 	// added variables
 	private static Connection centralisedServerConnection;
-
 	protected static Control control = null;
+	public static String backupRH = "localhost";
+	public static int backupRP = 3790;
 
 	public static Control getInstance() {
 		if (control == null) {
@@ -110,9 +111,9 @@ public class Control extends Thread {
 						return true;
 					}
 
-				// INVALID_MESSAGE ends
+					// INVALID_MESSAGE ends
 
-				// ***** AUTHENTICATION_SUCCESS (START) *****
+					// ***** AUTHENTICATION_SUCCESS (START) *****
 
 				case "AUTHENTICATION_SUCCESS":
 
@@ -123,7 +124,11 @@ public class Control extends Thread {
 						con.setCentralisedServer();
 						// print success message to console
 						String authenticationSuccessInfo = (String) message.get("info");
+						backupRH = (String) message.get("host");
+						backupRP = (int) (long)message.get("port");
+						
 						log.info(authenticationSuccessInfo);
+						log.info("The backup server has a remotehost: "+backupRH+", and a port number: "+backupRP);
 					} else {
 						// send invalid message if info is not found and close connection
 						sendInvalidMessage(con, "the received message did not contain a info");
@@ -132,7 +137,7 @@ public class Control extends Thread {
 					break;
 
 				// ***** AUTHENTICATION_SUCCESS (END) *****
-					
+
 				// AUTHENTICATION_FAIL starts
 
 				case "AUTHENTICATION_FAIL":
@@ -148,9 +153,10 @@ public class Control extends Thread {
 						return true;
 					}
 
-				// AUTHENTICATION_FAIL ends
+					// AUTHENTICATION_FAIL ends
 
-				// LOGOUT starts [NOTE] should consider passing the request to centralised server for better architecture
+					// LOGOUT starts [NOTE] should consider passing the request to centralised
+					// server for better architecture
 
 				case "LOGOUT":
 					// print client logged out message and close connection
@@ -158,8 +164,7 @@ public class Control extends Thread {
 					// inform centralized server to decrease 1 load
 					JSONObject deload = new JSONObject();
 					deload.put("command", "DE_LOAD");
-					deload.put("id",Settings.getServerId());
-					System.out.println(Settings.getServerId());
+					deload.put("id", Settings.getServerId());
 					forwardServerMessage(con, deload);
 					return true;
 
@@ -168,58 +173,66 @@ public class Control extends Thread {
 				// ACTIVITY_MESSAGE starts
 
 				case "ACTIVITY_MESSAGE":
-					if(con.isClient()) {
+					if (con.isClient()) {
 						// check if activity message contains username
 						boolean hasUsername = message.containsKey("username");
 						boolean hasSecret = message.containsKey("secret");
 						boolean hasActivity = message.containsKey("activity");
 
-						if(hasUsername) {
+						if (hasUsername) {
 							String activityMessageUsername = (String) message.get("username");
 
-							if(activityMessageUsername.equals("anonymous")) {
-								if(hasActivity) {
+							if (activityMessageUsername.equals("anonymous")) {
+								if (hasActivity) {
 									// process broadcast
 									JSONObject activityMessageActivity = (JSONObject) message.get("activity");
 									activityMessageActivity.put("authenticated_user", activityMessageUsername);
 									sendActivityBroadcast(activityMessageActivity);
 								} else {
-									// respond with invalid message if message did not contain a activity and close the connection
+									// respond with invalid message if message did not contain a activity and close
+									// the connection
 									sendInvalidMessage(con, "the received message did not contain an activity object");
 									return true;
 								}
-							} else if(!activityMessageUsername.equals("anonymous") && hasSecret) {
+							} else if (!activityMessageUsername.equals("anonymous") && hasSecret) {
 								String activityMessageSecret = (String) message.get("secret");
-								if(activityMessageUsername.equals(con.getClientUserName()) && activityMessageSecret.equals(con.getClientSecret())) {
-									if(hasActivity) {
+								if (activityMessageUsername.equals(con.getClientUserName())
+										&& activityMessageSecret.equals(con.getClientSecret())) {
+									if (hasActivity) {
 										// process broadcast
 										JSONObject activityMessageActivity = (JSONObject) message.get("activity");
 										activityMessageActivity.put("authenticated_user", activityMessageUsername);
 										sendActivityBroadcast(activityMessageActivity);
 									} else {
-										// respond with invalid message if message did not contain a activity and close the connection
-										sendInvalidMessage(con, "the received message did not contain an activity object");
+										// respond with invalid message if message did not contain a activity and close
+										// the connection
+										sendInvalidMessage(con,
+												"the received message did not contain an activity object");
 										return true;
 									}
 								} else {
 									// send authentication fail if username or secret did not match
-									sendAuthenticationFail(con, "username and secret do not match the logged in the user");
+									sendAuthenticationFail(con,
+											"username and secret do not match the logged in the user");
 									return true;
 								}
 							} else {
-								// respond with invalid message if message did not contain a secret and close the connection
-								sendInvalidMessage(con, "the received message has a non-anonymous username but did not contain a secret");
+								// respond with invalid message if message did not contain a secret and close
+								// the connection
+								sendInvalidMessage(con,
+										"the received message has a non-anonymous username but did not contain a secret");
 								return true;
 							}
 						} else {
-							// respond with invalid message if message did not contain a username and close the connection
+							// respond with invalid message if message did not contain a username and close
+							// the connection
 							sendInvalidMessage(con, "the received message did not contain a username");
 							return true;
 						}
 					} else {
 						sendAuthenticationFail(con, "client not login");
 					}
-		
+
 					break;
 
 				// ACTIVITY_MESSAGE ends
@@ -227,26 +240,25 @@ public class Control extends Thread {
 				// ACTIVITY_BROADCAST starts
 
 				case "ACTIVITY_BROADCAST":
-					System.out.println("i received from central server:"+message );
-					if(con.isServerAuthenticated()) {
-						forwardActivityBroadcastToClients(message);				
-					}else {
+					System.out.println("i received from central server:" + message);
+					if (con.isServerAuthenticated()) {
+						forwardActivityBroadcastToClients(message);
+					} else {
 						sendInvalidMessage(con, "Sorry, only server can send ACTIVITY_BROADCAST");
 						return true;
 					}
 					break;
 
 				// ACTIVITY_BROADCAST ends
-					
-				//testing
+
+				// testing
 				case "LOGIN":
-					System.out.println(msg);				
+					System.out.println(msg);
 					con.setClientUserName(message.get("username").toString());
 					con.setClientSecret(message.get("secret").toString());
 					con.setLoggedInClient();
-					System.out.println("This server is serving for:");
-					System.out.println(con.getClientUserName());
-					System.out.println(con.getClientSecret());
+					System.out.println("This server is serving for: id:" + con.getClientUserName() + " secret:"
+							+ con.getClientSecret());
 					return false;
 				default:
 					// if command is not valid send invalid message and close connection
@@ -275,25 +287,26 @@ public class Control extends Thread {
 		if (!term)
 			connections.remove(con);
 	}
-	
+
 	public synchronized void centralisedServerConnectionClosed(Connection con) {
 		if (!term) {
 			centralisedServerConnection.closeCon();
 			try {
-				// establish connection to default centralised server first, if not backup server
+				// establish connection to default centralized server first, if not backup
+				// server
 				sendServerAuthentication(
 						outgoingConnection(new Socket(Settings.getRemoteHostname(), Settings.getRemotePort())));
-
+				System.out.println("oops, the connection to centralised server goes down, reconnecting...");
 			} catch (IOException e) {
 				log.error("failed to make connection to " + Settings.getRemoteHostname() + ":"
 						+ Settings.getRemotePort() + " :" + e);
 				log.info("main centralised server has crashed, attempting to connect to backup centralised server");
 				try {
-					sendServerAuthentication(
-							outgoingConnection(new Socket(Settings.getBackupRemoteHostname(), Settings.getBackupRemotePort())));
+					sendServerAuthentication(outgoingConnection(
+							new Socket(backupRH, backupRP)));
 				} catch (IOException ex) {
-					log.error("failed to make connection to " + Settings.getBackupRemoteHostname() + ":"
-							+ Settings.getBackupRemotePort() + " :" + ex);
+					log.error("failed to make connection to " + backupRH + ":"
+							+ backupRP + " :" + ex);
 					System.exit(-1);
 				}
 			}
@@ -332,7 +345,7 @@ public class Control extends Thread {
 			// do something with 5 second intervals in between
 			// perform server announce every 5 seconds
 			// sendServerAnnounce(connections);
-			//sendServerAnnounce(connections);
+			// sendServerAnnounce(connections);
 			try {
 				Thread.sleep(Settings.getActivityInterval());
 			} catch (InterruptedException e) {
@@ -376,6 +389,13 @@ public class Control extends Thread {
 		JSONObject invalidMessage = new JSONObject();
 		invalidMessage.put("command", "INVALID_MESSAGE");
 		invalidMessage.put("info", info);
+
+		// when facing invalid msg, deload one
+		JSONObject deload = new JSONObject();
+		deload.put("command", "DE_LOAD");
+		deload.put("id", Settings.getServerId());
+		forwardServerMessage(c, deload);
+
 		// send message
 		if (c.writeMsg(invalidMessage.toJSONString())) {
 			log.debug("[Port-" + Settings.getLocalPort() + "]: INVALID_MESSAGE sent to "
@@ -397,14 +417,13 @@ public class Control extends Thread {
 		authenticate.put("id", Settings.getServerId());
 		authenticate.put("hostname", Settings.getLocalHostname());
 		authenticate.put("port", Settings.getLocalPort());
-		
+
 		// when facing invalid msg, deload one
 		JSONObject deload = new JSONObject();
 		deload.put("command", "DE_LOAD");
-		deload.put("id",Settings.getServerId());
-		System.out.println(Settings.getServerId());
+		deload.put("id", Settings.getServerId());
 		forwardServerMessage(c, deload);
-		
+
 		// write message
 		if (c.writeMsg(authenticate.toJSONString())) {
 			log.debug("[Port-" + Settings.getLocalPort() + "]: AUTHENTICATE sent to Port-" + Settings.getRemotePort());
@@ -450,24 +469,26 @@ public class Control extends Thread {
 		JSONObject failureMessage = new JSONObject();
 		failureMessage.put("command", "AUTHENTICATION_FAIL");
 		failureMessage.put("info", info);
-		
+
 		// when facing fail, deload one
 		JSONObject deload = new JSONObject();
 		deload.put("command", "DE_LOAD");
-		deload.put("id",Settings.getServerId());
+		deload.put("id", Settings.getServerId());
 		System.out.println(Settings.getServerId());
 		forwardServerMessage(c, deload);
-		
+
 		// write message
 		if (c.writeMsg(failureMessage.toJSONString())) {
-			log.debug("[Port-" + Settings.getLocalPort() + "]: AUTHENTICATE_FAIL sent to " + c.getSocket().getRemoteSocketAddress());
+			log.debug("[Port-" + Settings.getLocalPort() + "]: AUTHENTICATE_FAIL sent to "
+					+ c.getSocket().getRemoteSocketAddress());
 			return true;
 		} else {
-			log.debug("[Port-" + Settings.getLocalPort() + "]: AUTHENTICATE_FAIL sending to " + c.getSocket().getRemoteSocketAddress() + " failed");
+			log.debug("[Port-" + Settings.getLocalPort() + "]: AUTHENTICATE_FAIL sending to "
+					+ c.getSocket().getRemoteSocketAddress() + " failed");
 			return false;
 		}
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	private void sendActivityBroadcast(JSONObject activity) {
 		JSONObject activityBroadcastMessage = new JSONObject();
@@ -478,14 +499,14 @@ public class Control extends Thread {
 			c.writeMsg(activityBroadcastMessage.toJSONString());
 		}
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	private void forwardActivityBroadcastToClients(JSONObject activity) {
 
 		// write message to all connections regardless of client or server
 		for (Connection c : connections) {
-			if(c.isClient())
-			c.writeMsg(activity.toJSONString());
+			if (c.isClient())
+				c.writeMsg(activity.toJSONString());
 		}
 	}
 }
